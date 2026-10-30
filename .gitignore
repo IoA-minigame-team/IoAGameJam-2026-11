@@ -1,0 +1,134 @@
+# =============================================================================
+# Unity .gitignore
+# Base: https://github.com/github/gitignore/blob/main/Unity.gitignore
+# =============================================================================
+
+# Unity が生成するローカルフォルダ（Git 管理不要）
+.utmp/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+*.log
+
+# Blender のバックアップファイル
+*.blend1
+*.blend1.meta
+
+# メモリキャプチャ（サイズが大きくなる & 機密データを含む可能性）
+/[Mm]emoryCaptures/
+
+# レコーディング
+/[Rr]ecordings/
+
+# JetBrains Rider プラグイン（自動生成）
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.DotSettings.user
+
+# Visual Studio キャッシュ
+.vs/
+
+# Gradle キャッシュ
+.gradle/
+
+# 自動生成されるソリューション・プロジェクトファイル
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity が生成する meta ファイル（これらは不要。Assets 内の .meta は管理する）
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# クラッシュレポート
+sysinfo.txt
+mono_crash.*
+
+# ビルド成果物
+*.apk
+*.aab
+*.unitypackage
+*.unitypackage.meta
+*.app
+
+# Crashlytics
+crashlytics-build.properties
+
+# TestRunner
+InitTestScene*.unity*
+
+# Addressables
+/ServerData
+/[Aa]ssets/StreamingAssets/aa*
+/[Aa]ssets/AddressableAssetsData/link.xml*
+/[Aa]ssets/Addressables_Temp*
+/[Aa]ssets/AddressableAssetsData/*/*.bin*
+
+# Visual Scripting（自動生成）
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+
+# Play Mode テストで自動生成されるシーン
+/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# シーン依存キャッシュ
+/[Aa]ssets/[Ss]ceneDependencyCache*
+
+# =============================================================================
+# OS 固有のファイル
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# =============================================================================
+# IDE / エディタ固有のファイル
+# =============================================================================
+
+# JetBrains Rider
+.idea/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# =============================================================================
+# プロジェクト固有
+# =============================================================================
+
+# WebGL ビルド出力（ビルド成果物はリポジトリに含めない）
+/WebGLBuild/
