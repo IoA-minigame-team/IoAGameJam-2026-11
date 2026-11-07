@@ -1,0 +1,38 @@
+using UnityEngine;
+
+/// <summary>
+/// 担当をまたいで「今の状態」を読むための置き場。値を書くのは各項目の持ち主だけで、他の人は読むだけ。
+/// イベントだけだと、途中で湧いた敵が刀の状態を知れないので、状態もここに置く。
+/// </summary>
+public static class GameContext
+{
+    static IMeiStats meiStats = DefaultMeiStats.Instance;
+
+    /// <summary>
+    /// 銘の効果(倍率)。書くのは増永さん。null を入れると銘なしの値に戻るので、読む側は null を気にしなくてよい。
+    /// </summary>
+    public static IMeiStats MeiStats
+    {
+        get => meiStats;
+        set => meiStats = value ?? DefaultMeiStats.Instance;
+    }
+
+    /// <summary>主人公の Transform。書くのは髙橋。敵が主人公を追うときに使う。主人公がいなければ null</summary>
+    public static Transform PlayerTransform { get; set; }
+
+    /// <summary>刀が地面に刺さっているか。書くのは髙橋</summary>
+    public static bool IsSwordPlanted { get; set; }
+
+    /// <summary>刀の位置。書くのは髙橋。刺さっていない間は主人公とともに動く</summary>
+    public static Vector3 SwordPosition { get; set; }
+
+    // ドメインリロードを切った再生でも、前回の状態が残らないようにする
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetOnPlay()
+    {
+        meiStats = DefaultMeiStats.Instance;
+        PlayerTransform = null;
+        IsSwordPlanted = false;
+        SwordPosition = Vector3.zero;
+    }
+}
