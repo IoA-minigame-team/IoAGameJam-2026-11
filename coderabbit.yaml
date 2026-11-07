@@ -1,0 +1,160 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+#
+# 『ヒトフリ』CodeRabbit 設定
+# 方針: 1週間のゲームジャムなので、指摘は「バグ」「WebGLで動かない」「担当の境界を越えている」を優先し、好みの指摘は減らす
+
+language: ja-JP
+tone_instructions: 学生3人の1週間ゲームジャムです。日本語で簡潔に、指摘には理由と修正案を添えてください。動作やWebGL提出に関わる問題を優先し、好みの問題は控えめにしてください。
+early_access: false
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  poem: false
+  in_progress_fortune: false
+  suggested_labels: false
+  suggested_reviewers: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - WIP
+      - 作業中
+
+  # レビューしても意味のないファイルを除外する
+  path_filters:
+    - "!**/*.meta"
+    - "!**/*.unity"
+    - "!**/*.prefab"
+    - "!**/*.asset"
+    - "!**/*.mat"
+    - "!**/*.anim"
+    - "!**/*.controller"
+    - "!Assets/ExternalAssets/**"
+    - "!Assets/TextMesh Pro/**"
+    - "!Assets/Settings/**"
+    - "!ProjectSettings/**"
+    - "!Packages/packages-lock.json"
+
+  path_instructions:
+    - path: "Assets/_Project/Scripts/**/*.cs"
+      instructions: |
+        Unity 6.3 LTS(URP)、WebGL(unityroom)提出のゲームです。次を優先して確認してください。
+
+        WebGLで動かないもの
+        - VFX Graph、System.Threading のスレッド、UniTask のスレッドプール切り替え(SwitchToThreadPool、RunOnThreadPool など)
+        - R3、DIコンテナ(VContainer、Zenject)、Addressables の使用
+
+        担当間のルール
+        - 他担当のフォルダのクラスを直接参照していないか。担当間の連絡は Shared/ の GameEvents、ILaunchable、IMeiStats、Feedback、TimeController を通す
+        - GameEvents の購読は OnEnable で登録し、OnDisable で解除しているか(解除漏れはバグとして指摘)
+        - Time.timeScale を TimeController 以外で書き換えていないか
+        - 調整値がコードに直書きされていないか(各担当の ScriptableObject に置く)
+
+        Unityとパフォーマンス
+        - Update 内での GetComponent、Find、LINQ、文字列連結など毎フレームの割り当て
+        - UniTask に destroyCancellationToken を渡しているか
+        - 破棄済みオブジェクトへのアクセス
+
+        命名(チームのルール)
+        - クラス、メソッド、public 変数、プロパティは PascalCase
+        - private 変数とローカル変数は camelCase(_ や m_ を付けない)
+        - 定数は UPPER_SNAKE_CASE(C#の一般的な慣習と違うが、チームのルールなのでこちらを正とする)
+        - インスペクターに出す値は [SerializeField] の private フィールド
+
+    - path: "Assets/_Project/Scripts/Shared/**"
+      instructions: |
+        3人が共有する基盤コードです。既存のメソッド、イベント、インターフェースのシグネチャを変える変更は、他の2人のコードを壊すので必ず指摘してください。変更は追加を基本とします。
+        SeId と VfxId の列挙への項目追加だけは、髙橋以外(増永)が行ってよい変更です。
+
+    - path: "Assets/_Project/Scripts/Player/**"
+      instructions: |
+        主人公(髙橋)の担当です。
+        - 敵への初速は ILaunchable の Weight と GlowMultiplier を掛けて計算し、敵の状態を自分で持っていないか
+        - slashId は斬り戻しのたびに新しく採番し、同じ斬り抜けで当たった敵には同じ番号を渡しているか
+        - 盾持ちへの正面からの命中は IsShieldFacing で判定し、それだけなら空振り扱いにしているか
+
+    - path: "Assets/_Project/Scripts/Enemy/**"
+      instructions: &enemy |
+        敵とゲーム進行(三條)の担当です。
+        - 吹き飛んだ敵を Rigidbody への力で動かしていないか(初速と摩擦で自前で動かす仕様)
+        - Launch で受け取った slashId を落下まで保持し、EnemyFell に入れているか
+        - 銘の倍率は GameContext.MeiStats を読み、銘の効果を自前で計算していないか
+
+    - path: "Assets/_Project/Scripts/Game/**"
+      instructions: *enemy
+
+    - path: "Assets/_Project/Scripts/Mei/**"
+      instructions: &masunaga |
+        演出基盤、UI、銘(増永)の担当です。
+        - UIのアニメーションや待ち時間が unscaled time で書かれているか(時間停止中も動く必要がある)
+        - TimeController.RequestPause と ReleasePause が対になっているか(閉じる経路の漏れを含む)
+        - IMeiStats の実装が上限で切った最終値を返し、0や未設定にならないか
+        - Feedback は中身が未完成でも呼び出し側が例外にならないか
+
+    - path: "Assets/_Project/Scripts/Feedback/**"
+      instructions: *masunaga
+
+    - path: "Assets/_Project/Scripts/UI/**"
+      instructions: *masunaga
+
+    - path: "Packages/manifest.json"
+      instructions: |
+        パッケージの追加や更新を確認してください。上の禁止リスト(VFX Graph、R3、VContainer、Zenject、Addressables)に当たるものは指摘してください。
+        それ以外の新規パッケージは「チームへの共有が済んでいるか」を一言確認してください。
+
+    - path: "**/*.md"
+      instructions: |
+        ドキュメントです。誤字と、事実の食い違い(仕様書と連携ガイドの矛盾など)だけを指摘してください。文体の好みは指摘しないでください。
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: 日本語で「何をしたか」が分かる短いタイトル(例「斬り戻しの当たり判定を実装」)。「修正」「update」のように中身が分からないタイトルは不可。
+    description:
+      mode: "off"
+    issue_assessment:
+      mode: "off"
+    custom_checks:
+      - name: 担当外のコード変更
+        mode: warning
+        instructions: |
+          変更されたC#ファイルのフォルダと、PRのブランチ名(feature/名前-作業内容)の名前部分を照らし合わせる。
+          担当は次の通り。
+          - kapi(髙橋): Assets/_Project/Scripts/Player/、Assets/_Project/Scripts/Shared/
+          - 三條: Assets/_Project/Scripts/Enemy/、Assets/_Project/Scripts/Game/
+          - 増永: Assets/_Project/Scripts/Mei/、Assets/_Project/Scripts/Feedback/、Assets/_Project/Scripts/UI/
+          例外として、増永が Shared/ の SeId と VfxId の列挙に項目を追加するのは可。
+          担当外のフォルダのファイルが変更されていれば失敗とし、該当ファイルを列挙する。
+          ブランチ名から誰の作業か判断できない場合は合格とする。
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  tools:
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
+  art: false
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "Documents/Unity_プロジェクトルール.md"
+      - "Documents/ヒトフリ_チーム連携ガイド.md"
+  learnings:
+    scope: local
