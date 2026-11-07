@@ -132,3 +132,7 @@ $RECYCLE.BIN/
 
 # WebGL ビルド出力（ビルド成果物はリポジトリに含めない）
 /WebGLBuild/
+
+# Claude Code(個人用のファイルはリポジトリに含めない)
+CLAUDE.local.md
+.claude/settings.local.json
