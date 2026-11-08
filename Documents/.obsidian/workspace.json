@@ -1,0 +1,201 @@
+{
+  "main": {
+    "id": "0831e832f41a9fa1",
+    "type": "split",
+    "children": [
+      {
+        "id": "e0fbcb68cbc4dfbc",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5910b1d5093690d9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ヒトフリ 仕様書/03 刀と光.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "03 刀と光"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "0375ce9ba63140e8",
+    "type": "split",
+    "children": [
+      {
+        "id": "f24d41aca849e8bc",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1b03012447c169b8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "ファイルエクスプローラ"
+            }
+          },
+          {
+            "id": "07cb6b09f3db4e13",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "検索"
+            }
+          },
+          {
+            "id": "04dafefbc1675f43",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "ブックマーク"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "13900f4a6b7c9eb7",
+    "type": "split",
+    "children": [
+      {
+        "id": "aeeb95064dfaca26",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "91c4c04f99c67f18",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "ヒトフリ 仕様書/03 刀と光.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "バックリンク"
+            }
+          },
+          {
+            "id": "d11186eebc0ee572",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "ヒトフリ 仕様書/03 刀と光.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "アウトゴーイングリンク"
+            }
+          },
+          {
+            "id": "e2854cf15d2d0985",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "タグ"
+            }
+          },
+          {
+            "id": "f1ec5cd169d7eb01",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "すべてのプロパティ"
+            }
+          },
+          {
+            "id": "646aa071a7f26dd8",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "ヒトフリ 仕様書/03 刀と光.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "アウトライン"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:クイックスイッチャーを開く": false,
+      "graph:グラフビューを開く": false,
+      "canvas:新規キャンバスを作成": false,
+      "daily-notes:今日のデイリーノートを開く": false,
+      "templates:テンプレートを挿入": false,
+      "command-palette:コマンドパレットを開く": false,
+      "bases:新規ベースを作成": false
+    }
+  },
+  "active": "5910b1d5093690d9",
+  "lastOpenFiles": [
+    "ヒトフリ 仕様書/04 敵とウェーブ.md",
+    "ヒトフリ 仕様書/05 ステージ.md",
+    "ヒトフリ 仕様書/06 銘.md",
+    "ヒトフリ チーム連携ガイド/04 髙橋の連携.md",
+    "ヒトフリ チーム連携ガイド/05 基盤コード辞書.md",
+    "ヒトフリ チーム連携ガイド/03 増永さんの連携.md",
+    "ヒトフリ チーム連携ガイド/02 三條さんの連携.md"
+  ]
+}
