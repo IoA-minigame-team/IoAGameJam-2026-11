@@ -32,10 +32,25 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0f)] float lengthBonusPerMeter = 0.1f;
     [Tooltip("線の端で当たったときの、斬り抜ける向きからの逸れ(度)")]
     [SerializeField, Range(0f, 90f)] float edgeDeflectAngle = 90f;
+    // 仕様は「端ほど弱く」とだけあるので仮の値
+    [Tooltip("線の端で当たったときの吹き飛ばし力の割合。中央で 1")]
+    [SerializeField, Range(0f, 1f)] float edgePowerRatio = 0.5f;
+
+    [Header("自動の斬り戻し")]
+    // パラメータ表では EnemyTuning だが、数えるのは主人公側なのでここに置く(朝会で共有)
+    [Tooltip("突き立ててから自動で斬り戻すまでの時間(秒)")]
+    [SerializeField, Min(0f)] float autoReturnTime = 3f;
+    [Tooltip("刀に群がる灯喰らい1体ごとに縮める秒数")]
+    [SerializeField, Min(0f)] float autoReturnReductionPerSwarm = 0.3f;
+    [Tooltip("自動で斬り戻すまでの時間の下限(秒)")]
+    [SerializeField, Min(0f)] float autoReturnMinTime = 1f;
 
     [Header("被弾")]
     [Tooltip("被弾の上限。銘の増減は MeiStats.MaxDamageOffset を足す")]
     [SerializeField, Min(1)] int maxDamageCount = 3;
+    // 仕様にない値。敵に触れ続けたとき、一度に何回も被弾しないようにする
+    [Tooltip("被弾した後の無敵(秒)")]
+    [SerializeField, Min(0f)] float damageInvincibleTime = 1f;
 
     [Header("ヒットストップ")]
     [SerializeField, Min(0f)] float hitStopBase = 0.05f;
@@ -61,7 +76,12 @@ public sealed class PlayerTuning : ScriptableObject
     public float BaseLaunchPower => baseLaunchPower;
     public float LengthBonusPerMeter => lengthBonusPerMeter;
     public float EdgeDeflectAngle => edgeDeflectAngle;
+    public float EdgePowerRatio => edgePowerRatio;
+    public float AutoReturnTime => autoReturnTime;
+    public float AutoReturnReductionPerSwarm => autoReturnReductionPerSwarm;
+    public float AutoReturnMinTime => autoReturnMinTime;
     public int MaxDamageCount => maxDamageCount;
+    public float DamageInvincibleTime => damageInvincibleTime;
     public float HitStopBase => hitStopBase;
     public float HitStopPerEnemy => hitStopPerEnemy;
     public float HitStopMax => hitStopMax;
