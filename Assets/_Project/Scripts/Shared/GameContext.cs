@@ -26,6 +26,12 @@ public static class GameContext
     /// <summary>刀の位置。書くのは髙橋。刺さっていない間は主人公とともに動く</summary>
     public static Vector3 SwordPosition { get; set; }
 
+    /// <summary>
+    /// 自動で斬り戻すまでの残り秒数。書くのは髙橋。刀が刺さっていない間は 0。
+    /// 残り時間の見せ方(増永さん)が、主人公のクラスを参照せずに読めるようにするため
+    /// </summary>
+    public static float AutoReturnRemaining { get; set; }
+
     // ドメインリロードを切った再生でも、前回の状態が残らないようにする
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay()
@@ -34,5 +40,6 @@ public static class GameContext
         PlayerTransform = null;
         IsSwordPlanted = false;
         SwordPosition = Vector3.zero;
+        AutoReturnRemaining = 0f;
     }
 }
