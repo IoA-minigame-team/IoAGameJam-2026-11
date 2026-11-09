@@ -83,12 +83,16 @@ public sealed class PlayerController : MonoBehaviour
     /// <summary>今の線の幅(銘の倍率込み)</summary>
     public float CurrentLineWidth => tuning.LineWidth * GameContext.MeiStats.LineWidthMultiplier;
 
-    /// <summary>足元の高さ。線を地面に描くときに使う</summary>
+    /// <summary>足元の高さ。線を地面に描くときと、刀を地面に刺すときに使う</summary>
+    // CharacterController は skinWidth の分だけ地面から浮いて止まるので、その分を引いて地面に合わせる
     public float FootHeight =>
-        transform.position.y + characterController.center.y - characterController.height * 0.5f;
+        transform.position.y + characterController.center.y - characterController.height * 0.5f - characterController.skinWidth;
 
     /// <summary>今の連鎖数</summary>
     public int Chain { get; private set; }
+
+    /// <summary>直前の斬り戻しで1体以上当たったか。硬直の見た目を当たりと空振りで分けるため</summary>
+    public bool LastSlashHit { get; private set; }
 
     /// <summary>直前の斬り戻しで、盾に正面から弾かれた敵の数</summary>
     public int LastShieldBlockedCount { get; private set; }
@@ -218,9 +222,10 @@ public sealed class PlayerController : MonoBehaviour
 
         if (sword != null)
         {
+            // 刀のピボットは「地面に接する点」に置いてあるので、足元の高さに置けば刺さって見える
             sword.SetParent(null, true);
             sword.SetPositionAndRotation(
-                new Vector3(plantedPosition.x, sword.position.y, plantedPosition.z),
+                new Vector3(plantedPosition.x, FootHeight, plantedPosition.z),
                 Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
         }
 
@@ -330,6 +335,7 @@ public sealed class PlayerController : MonoBehaviour
 
         // 当たれば連鎖、外せば隙。盾に正面から当たっただけなら slashHitCount は 0 なので空振り
         bool hit = slashHitCount > 0;
+        LastSlashHit = hit;
         int newChain = hit ? Chain + 1 : 0;
         if (newChain != Chain)
         {

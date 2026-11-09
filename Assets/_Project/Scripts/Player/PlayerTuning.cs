@@ -66,6 +66,17 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Range(0f, 1f)] float cinematicSlowScale = 0.3f;
     [SerializeField, Min(0f)] float postCinematicInvincible = 0.5f;
 
+    [Header("見た目")]
+    // 見た目の値は仕様にないので仮の値。手触りを見ながら決める
+    [Tooltip("アニメーションを切り替えるときのクロスフェード(秒)")]
+    [SerializeField, Min(0f)] float animationCrossFade = 0.08f;
+    [Tooltip("斬り抜けに入るときのクロスフェード(秒)。瞬間移動に合わせて短くする")]
+    [SerializeField, Min(0f)] float slashCrossFade = 0f;
+    [Tooltip("走りのブレンドが最大になる速さ(m/s)。手ぶらの速さに合わせる")]
+    [SerializeField, Min(0.01f)] float runBlendSpeed = 6.5f;
+    [Tooltip("被弾後の無敵の間に点滅する間隔(秒)")]
+    [SerializeField, Min(0.01f)] float damageBlinkInterval = 0.08f;
+
     public float MoveSpeed => moveSpeed;
     public float FreeHandSpeedRatio => freeHandSpeedRatio;
     public float PlantRecovery => plantRecovery;
@@ -89,4 +100,8 @@ public sealed class PlayerTuning : ScriptableObject
     public float CinematicBlendBack => cinematicBlendBack;
     public float CinematicSlowScale => cinematicSlowScale;
     public float PostCinematicInvincible => postCinematicInvincible;
+    public float AnimationCrossFade => animationCrossFade;
+    public float SlashCrossFade => slashCrossFade;
+    public float RunBlendSpeed => runBlendSpeed;
+    public float DamageBlinkInterval => damageBlinkInterval;
 }
