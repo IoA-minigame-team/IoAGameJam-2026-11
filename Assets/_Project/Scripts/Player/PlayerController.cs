@@ -28,6 +28,8 @@ public sealed class PlayerController : MonoBehaviour
     // 0 で割らないための下限
     const float MIN_SPEED_MULTIPLIER = 0.01f;
     const float MIN_MOVE_INPUT = 0.0001f;
+    // カメラが真下を向いていて右が決まらないときの判定
+    const float MIN_AXIS_LENGTH = 0.0001f;
 
     [SerializeField] PlayerTuning tuning;
 
@@ -226,7 +228,7 @@ public sealed class PlayerController : MonoBehaviour
             sword.SetParent(null, true);
             sword.SetPositionAndRotation(
                 new Vector3(plantedPosition.x, FootHeight, plantedPosition.z),
-                Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
+                PlantedSwordRotation());
         }
 
         GameContext.IsSwordPlanted = true;
@@ -237,6 +239,22 @@ public sealed class PlayerController : MonoBehaviour
 
         stateTimer = tuning.PlantRecovery;
         CurrentState = State.Planting;
+    }
+
+    // 刺さった刀の向きはカメラを基準に決める。見下ろしのカメラから刃の平らな面と長さが見えるようにするため。
+    // 主人公の向きに合わせると、向きによっては刃の厚み側しか見えず、細い線になる
+    Quaternion PlantedSwordRotation()
+    {
+        Vector3 cameraRight = Vector3.right;
+        if (cameraTransform != null)
+        {
+            Vector3 flatRight = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up);
+            if (flatRight.sqrMagnitude > MIN_AXIS_LENGTH) cameraRight = flatRight.normalized;
+        }
+        // 刀の Z(刃幅の向き)を画面の横にそろえると、X(刃の面)がカメラを向く
+        Quaternion faceCamera = Quaternion.LookRotation(cameraRight, Vector3.up);
+        // 画面の横を軸に正の角度で回すと、刀の頭が奥(カメラから離れる向き)へ倒れて長く見える
+        return Quaternion.AngleAxis(tuning.PlantTiltAngle, cameraRight) * faceCamera;
     }
 
     // 群がるほど早く斬り戻される。群がる数が途中で変わっても、その時点の制限時間と比べる

@@ -16,6 +16,9 @@ public sealed class PlayerTuning : ScriptableObject
     [Header("突き立てと斬り戻し")]
     [Tooltip("突き立てる瞬間の隙(秒)")]
     [SerializeField, Min(0f)] float plantRecovery = 0.1f;
+    // 見下ろしのカメラからはまっすぐ立てた刀が点にしか見えないので、少し傾けて刃を見せる
+    [Tooltip("突き立てた刀を傾ける角度(度)。刀の頭がカメラから見て奥へ倒れる")]
+    [SerializeField, Range(0f, 45f)] float plantTiltAngle = 20f;
     [Tooltip("斬り戻しの所要時間(秒)。瞬間移動と斬り抜けを含み、この間は無敵")]
     [SerializeField, Min(0.01f)] float slashDuration = 0.2f;
     [Tooltip("斬り戻し後の硬直(秒)、1体以上当たったとき")]
@@ -80,6 +83,7 @@ public sealed class PlayerTuning : ScriptableObject
     public float MoveSpeed => moveSpeed;
     public float FreeHandSpeedRatio => freeHandSpeedRatio;
     public float PlantRecovery => plantRecovery;
+    public float PlantTiltAngle => plantTiltAngle;
     public float SlashDuration => slashDuration;
     public float HitRecovery => hitRecovery;
     public float WhiffRecovery => whiffRecovery;
