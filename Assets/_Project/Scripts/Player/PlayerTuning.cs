@@ -16,6 +16,9 @@ public sealed class PlayerTuning : ScriptableObject
     [Header("突き立てと斬り戻し")]
     [Tooltip("突き立てる瞬間の隙(秒)")]
     [SerializeField, Min(0f)] float plantRecovery = 0.1f;
+    // 見下ろしのカメラからはまっすぐ立てた刀が点にしか見えないので、少し傾けて刃を見せる
+    [Tooltip("突き立てた刀を傾ける角度(度)。刀の頭がカメラから見て奥へ倒れる")]
+    [SerializeField, Range(0f, 45f)] float plantTiltAngle = 20f;
     [Tooltip("斬り戻しの所要時間(秒)。瞬間移動と斬り抜けを含み、この間は無敵")]
     [SerializeField, Min(0.01f)] float slashDuration = 0.2f;
     [Tooltip("斬り戻し後の硬直(秒)、1体以上当たったとき")]
@@ -66,9 +69,25 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Range(0f, 1f)] float cinematicSlowScale = 0.3f;
     [SerializeField, Min(0f)] float postCinematicInvincible = 0.5f;
 
+    [Header("見た目")]
+    // 見た目の値は仕様にないので仮の値。手触りを見ながら決める
+    [Tooltip("アニメーションを切り替えるときのクロスフェード(秒)")]
+    [SerializeField, Min(0f)] float animationCrossFade = 0.08f;
+    [Tooltip("斬り抜けに入るときのクロスフェード(秒)。瞬間移動に合わせて短くする")]
+    [SerializeField, Min(0f)] float slashCrossFade = 0f;
+    [Tooltip("走りのブレンドが最大になる速さ(m/s)。手ぶらの速さに合わせる")]
+    [SerializeField, Min(0.01f)] float runBlendSpeed = 6.5f;
+    [Tooltip("被弾後の無敵の間に点滅する間隔(秒)")]
+    [SerializeField, Min(0.01f)] float damageBlinkInterval = 0.08f;
+    [Tooltip("突き立てた姿勢を、手ぶらになってからも見た目だけ残す長さ(秒)。動き出したらすぐ切り替える")]
+    [SerializeField, Min(0f)] float plantPoseHold = 0.2f;
+    [Tooltip("斬り抜けの振り抜いた姿勢を、硬直に入ってから見た目だけ残す長さ(秒)")]
+    [SerializeField, Min(0f)] float slashPoseHold = 0.1f;
+
     public float MoveSpeed => moveSpeed;
     public float FreeHandSpeedRatio => freeHandSpeedRatio;
     public float PlantRecovery => plantRecovery;
+    public float PlantTiltAngle => plantTiltAngle;
     public float SlashDuration => slashDuration;
     public float HitRecovery => hitRecovery;
     public float WhiffRecovery => whiffRecovery;
@@ -89,4 +108,10 @@ public sealed class PlayerTuning : ScriptableObject
     public float CinematicBlendBack => cinematicBlendBack;
     public float CinematicSlowScale => cinematicSlowScale;
     public float PostCinematicInvincible => postCinematicInvincible;
+    public float AnimationCrossFade => animationCrossFade;
+    public float SlashCrossFade => slashCrossFade;
+    public float RunBlendSpeed => runBlendSpeed;
+    public float DamageBlinkInterval => damageBlinkInterval;
+    public float PlantPoseHold => plantPoseHold;
+    public float SlashPoseHold => slashPoseHold;
 }

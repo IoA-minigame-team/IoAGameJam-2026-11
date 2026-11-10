@@ -28,6 +28,8 @@ public sealed class PlayerController : MonoBehaviour
     // 0 で割らないための下限
     const float MIN_SPEED_MULTIPLIER = 0.01f;
     const float MIN_MOVE_INPUT = 0.0001f;
+    // カメラが真下を向いていて右が決まらないときの判定
+    const float MIN_AXIS_LENGTH = 0.0001f;
 
     [SerializeField] PlayerTuning tuning;
 
@@ -83,12 +85,16 @@ public sealed class PlayerController : MonoBehaviour
     /// <summary>今の線の幅(銘の倍率込み)</summary>
     public float CurrentLineWidth => tuning.LineWidth * GameContext.MeiStats.LineWidthMultiplier;
 
-    /// <summary>足元の高さ。線を地面に描くときに使う</summary>
+    /// <summary>足元の高さ。線を地面に描くときと、刀を地面に刺すときに使う</summary>
+    // CharacterController は skinWidth の分だけ地面から浮いて止まるので、その分を引いて地面に合わせる
     public float FootHeight =>
-        transform.position.y + characterController.center.y - characterController.height * 0.5f;
+        transform.position.y + characterController.center.y - characterController.height * 0.5f - characterController.skinWidth;
 
     /// <summary>今の連鎖数</summary>
     public int Chain { get; private set; }
+
+    /// <summary>直前の斬り戻しで1体以上当たったか。硬直の見た目を当たりと空振りで分けるため</summary>
+    public bool LastSlashHit { get; private set; }
 
     /// <summary>直前の斬り戻しで、盾に正面から弾かれた敵の数</summary>
     public int LastShieldBlockedCount { get; private set; }
@@ -218,10 +224,11 @@ public sealed class PlayerController : MonoBehaviour
 
         if (sword != null)
         {
+            // 刀のピボットは「地面に接する点」に置いてあるので、足元の高さに置けば刺さって見える
             sword.SetParent(null, true);
             sword.SetPositionAndRotation(
-                new Vector3(plantedPosition.x, sword.position.y, plantedPosition.z),
-                Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
+                new Vector3(plantedPosition.x, FootHeight, plantedPosition.z),
+                PlantedSwordRotation());
         }
 
         GameContext.IsSwordPlanted = true;
@@ -232,6 +239,22 @@ public sealed class PlayerController : MonoBehaviour
 
         stateTimer = tuning.PlantRecovery;
         CurrentState = State.Planting;
+    }
+
+    // 刺さった刀の向きはカメラを基準に決める。見下ろしのカメラから刃の平らな面と長さが見えるようにするため。
+    // 主人公の向きに合わせると、向きによっては刃の厚み側しか見えず、細い線になる
+    Quaternion PlantedSwordRotation()
+    {
+        Vector3 cameraRight = Vector3.right;
+        if (cameraTransform != null)
+        {
+            Vector3 flatRight = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up);
+            if (flatRight.sqrMagnitude > MIN_AXIS_LENGTH) cameraRight = flatRight.normalized;
+        }
+        // 刀の Z(刃幅の向き)を画面の横にそろえると、X(刃の面)がカメラを向く
+        Quaternion faceCamera = Quaternion.LookRotation(cameraRight, Vector3.up);
+        // 画面の横を軸に正の角度で回すと、刀の頭が奥(カメラから離れる向き)へ倒れて長く見える
+        return Quaternion.AngleAxis(tuning.PlantTiltAngle, cameraRight) * faceCamera;
     }
 
     // 群がるほど早く斬り戻される。群がる数が途中で変わっても、その時点の制限時間と比べる
@@ -330,6 +353,7 @@ public sealed class PlayerController : MonoBehaviour
 
         // 当たれば連鎖、外せば隙。盾に正面から当たっただけなら slashHitCount は 0 なので空振り
         bool hit = slashHitCount > 0;
+        LastSlashHit = hit;
         int newChain = hit ? Chain + 1 : 0;
         if (newChain != Chain)
         {
