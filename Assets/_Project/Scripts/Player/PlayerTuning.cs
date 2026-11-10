@@ -79,6 +79,10 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0.01f)] float runBlendSpeed = 6.5f;
     [Tooltip("被弾後の無敵の間に点滅する間隔(秒)")]
     [SerializeField, Min(0.01f)] float damageBlinkInterval = 0.08f;
+    [Tooltip("突き立てた姿勢を、手ぶらになってからも見た目だけ残す長さ(秒)。動き出したらすぐ切り替える")]
+    [SerializeField, Min(0f)] float plantPoseHold = 0.2f;
+    [Tooltip("斬り抜けの振り抜いた姿勢を、硬直に入ってから見た目だけ残す長さ(秒)")]
+    [SerializeField, Min(0f)] float slashPoseHold = 0.1f;
 
     public float MoveSpeed => moveSpeed;
     public float FreeHandSpeedRatio => freeHandSpeedRatio;
@@ -108,4 +112,6 @@ public sealed class PlayerTuning : ScriptableObject
     public float SlashCrossFade => slashCrossFade;
     public float RunBlendSpeed => runBlendSpeed;
     public float DamageBlinkInterval => damageBlinkInterval;
+    public float PlantPoseHold => plantPoseHold;
+    public float SlashPoseHold => slashPoseHold;
 }

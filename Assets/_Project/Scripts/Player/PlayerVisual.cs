@@ -19,6 +19,8 @@ public sealed class PlayerVisual : MonoBehaviour
     const string STATE_DOWN = "Down";
     const string PARAM_SPEED = "Speed";
     const int BASE_LAYER = 0;
+    // これより速ければ動き出したとみなし、残している姿勢をやめる(m/s)
+    const float MIN_MOVING_SPEED = 0.1f;
 
     static readonly int locomotionHash = Animator.StringToHash(STATE_LOCOMOTION);
     static readonly int plantHash = Animator.StringToHash(STATE_PLANT);
@@ -61,6 +63,13 @@ public sealed class PlayerVisual : MonoBehaviour
     bool accentOn = true;
     bool bodyVisible = true;
     float blinkElapsed;
+    float horizontalSpeed;
+
+    // 決めの姿勢を残している間に来た切り替えは、残し終わってから行う
+    float poseHoldRemaining;
+    bool hasPendingCrossFade;
+    int pendingStateHash;
+    float pendingDuration;
 
     void Awake()
     {
@@ -100,6 +109,7 @@ public sealed class PlayerVisual : MonoBehaviour
         }
 
         UpdateSpeed(state);
+        UpdatePoseHold(state);
         UpdateBlink();
     }
 
@@ -110,17 +120,69 @@ public sealed class PlayerVisual : MonoBehaviour
 
         if (!hasAnimator) return;
 
+        // 突き立て、斬り抜け、倒れるは操作に直結するので、残している姿勢があってもすぐ切り替える
         switch (state)
         {
-            case PlayerController.State.Armed: CrossFade(locomotionHash, tuning.AnimationCrossFade); break;
-            case PlayerController.State.Planting: CrossFade(plantHash, tuning.AnimationCrossFade); break;
-            case PlayerController.State.FreeHand: CrossFade(freeLocomotionHash, tuning.AnimationCrossFade); break;
-            case PlayerController.State.Slashing: CrossFade(slashHash, tuning.SlashCrossFade); break;
-            case PlayerController.State.Recovery:
-                CrossFade(controller.LastSlashHit ? sheatheHash : whiffHash, tuning.AnimationCrossFade);
+            case PlayerController.State.Armed: RequestCrossFade(locomotionHash, tuning.AnimationCrossFade); break;
+            case PlayerController.State.Planting: CrossFadeNow(plantHash, tuning.AnimationCrossFade); break;
+            case PlayerController.State.FreeHand:
+                // 突き立てた瞬間が一瞬で消えないよう、刺した姿勢を少し残してから手ぶらの待機へ移る
+                StartPoseHold(tuning.PlantPoseHold);
+                RequestCrossFade(freeLocomotionHash, tuning.AnimationCrossFade);
                 break;
-            case PlayerController.State.Disabled: CrossFade(downHash, tuning.AnimationCrossFade); break;
+            case PlayerController.State.Slashing: CrossFadeNow(slashHash, tuning.SlashCrossFade); break;
+            case PlayerController.State.Recovery:
+                // 振り抜いた形を見せてから、納刀か空振りへ移る
+                StartPoseHold(tuning.SlashPoseHold);
+                RequestCrossFade(controller.LastSlashHit ? sheatheHash : whiffHash, tuning.AnimationCrossFade);
+                break;
+            case PlayerController.State.Disabled: CrossFadeNow(downHash, tuning.AnimationCrossFade); break;
         }
+    }
+
+    // ---- 決めの姿勢を残す ----
+
+    void StartPoseHold(float duration)
+    {
+        poseHoldRemaining = duration;
+    }
+
+    void RequestCrossFade(int stateHash, float duration)
+    {
+        if (poseHoldRemaining <= 0f)
+        {
+            CrossFade(stateHash, duration);
+            return;
+        }
+
+        // 後から来た切り替えで上書きする。残し終わったときに、その時点の状態に合う動きへ移るため
+        hasPendingCrossFade = true;
+        pendingStateHash = stateHash;
+        pendingDuration = duration;
+    }
+
+    void CrossFadeNow(int stateHash, float duration)
+    {
+        poseHoldRemaining = 0f;
+        hasPendingCrossFade = false;
+        CrossFade(stateHash, duration);
+    }
+
+    void UpdatePoseHold(PlayerController.State state)
+    {
+        if (!hasPendingCrossFade) return;
+
+        // scaled time で数えるので、ヒットストップ中は姿勢も止まったまま残る
+        poseHoldRemaining -= Time.deltaTime;
+
+        // 動き出したら、足が滑って見えないよう残すのをやめる
+        bool canMove = state == PlayerController.State.Armed || state == PlayerController.State.FreeHand;
+        bool startedMoving = canMove && horizontalSpeed > MIN_MOVING_SPEED;
+        if (poseHoldRemaining > 0f && !startedMoving) return;
+
+        poseHoldRemaining = 0f;
+        hasPendingCrossFade = false;
+        CrossFade(pendingStateHash, pendingDuration);
     }
 
     void CrossFade(int stateHash, float duration)
@@ -132,18 +194,18 @@ public sealed class PlayerVisual : MonoBehaviour
 
     void UpdateSpeed(PlayerController.State state)
     {
-        if (!hasSpeedParam) return;
-
         // 移動しているのは Armed と FreeHand だけ。斬り抜け中は CharacterController を切っているので速さは読まない
-        float speed = 0f;
+        horizontalSpeed = 0f;
         bool moving = state == PlayerController.State.Armed || state == PlayerController.State.FreeHand;
         if (moving && characterController != null && characterController.enabled)
         {
             Vector3 velocity = characterController.velocity;
             velocity.y = 0f;
-            speed = velocity.magnitude;
+            horizontalSpeed = velocity.magnitude;
         }
-        animator.SetFloat(speedHash, Mathf.Clamp01(speed / tuning.RunBlendSpeed));
+
+        if (!hasSpeedParam) return;
+        animator.SetFloat(speedHash, Mathf.Clamp01(horizontalSpeed / tuning.RunBlendSpeed));
     }
 
     void UpdateBlink()
