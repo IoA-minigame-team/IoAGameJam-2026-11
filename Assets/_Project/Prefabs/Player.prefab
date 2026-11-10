@@ -414,6 +414,7 @@ GameObject:
   - component: {fileID: 6038274798715661895}
   - component: {fileID: 5891537439742475499}
   - component: {fileID: 407958011581451394}
+  - component: {fileID: 1920929492615168929}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -538,6 +539,21 @@ MonoBehaviour:
   accentOffMaterial: {fileID: 2100000, guid: d6264c7d72491e54a9fdf36ec7172a79, type: 2}
   modelRoot: {fileID: 9005277701979170953}
   swordRoot: {fileID: 1089227003616791642}
+--- !u!114 &1920929492615168929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6830269170275813392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c6cfcdb3fad7cc4cb2b31ef5ce19d74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SwordTrailView
+  controller: {fileID: 7194627015480645749}
+  trails:
+  - {fileID: 7598346039053554935}
 --- !u!1 &7479161937410100096
 GameObject:
   m_ObjectHideFlags: 0
@@ -836,5 +852,10 @@ PrefabInstance:
 --- !u!4 &1089227003616791642 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6511500306489781076, guid: d9ba5ef8802b6ae449d23351e16c5ab8, type: 3}
+  m_PrefabInstance: {fileID: 6143131133375424270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!96 &7598346039053554935 stripped
+TrailRenderer:
+  m_CorrespondingSourceObject: {fileID: 4337659413448143865, guid: d9ba5ef8802b6ae449d23351e16c5ab8, type: 3}
   m_PrefabInstance: {fileID: 6143131133375424270}
   m_PrefabAsset: {fileID: 0}
