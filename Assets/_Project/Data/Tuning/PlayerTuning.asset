@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c8325bed8b05d14ca05be453bb23c31, type: 3}
   m_Name: PlayerTuning
   m_EditorClassIdentifier: Assembly-CSharp::PlayerTuning
-  moveSpeed: 5
+  moveSpeed: 10
   freeHandSpeedRatio: 1.3
   plantRecovery: 0.1
+  plantTiltAngle: 20
   slashDuration: 0.2
   hitRecovery: 0.1
   whiffRecovery: 0.6
@@ -35,3 +36,7 @@ MonoBehaviour:
   cinematicBlendBack: 0.3
   cinematicSlowScale: 0.3
   postCinematicInvincible: 0.5
+  animationCrossFade: 0.08
+  slashCrossFade: 0
+  runBlendSpeed: 6.5
+  damageBlinkInterval: 0.08
