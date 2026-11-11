@@ -352,6 +352,9 @@ public sealed class PlayerController : MonoBehaviour
         float progress = Mathf.Clamp01(slashElapsed / slashDuration);
         transform.position = Vector3.Lerp(passStart, passEnd, progress);
 
+        // 返しの間合いの最中はまだ斬り抜けていない。始点にいる敵(Progress が 0)を待つ間に飛ばさないよう、当てる処理へ進まない
+        if (slashElapsed < 0f) return;
+
         // 通り過ぎた敵から順に吹き飛ばす。斬り抜けに合わせて群れが飛んでいくように見せるため
         while (nextTargetIndex < slashTargets.Count && slashTargets[nextTargetIndex].Progress <= progress)
         {
