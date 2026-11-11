@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eff732211ca505b48890304368379290, type: 3}
+  m_Name: EnemyWavePlan
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWavePlan
+  waves:
+  - label: '1: Shadow introduction'
+    batches:
+    - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      count: 3
+      areas: 30
+      delay: 0
+      interval: 0.7
+  - label: '2: Shadow + LampEater (werewolf visual)'
+    batches:
+    - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      count: 3
+      areas: 24
+      delay: 0
+      interval: 0.7
+    - prefab: {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
+      count: 2
+      areas: 6
+      delay: 0.5
+      interval: 0.7
+  - label: '3: Shield from centre'
+    batches:
+    - prefab: {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
+      count: 2
+      areas: 1
+      delay: 0
+      interval: 0.7
+    - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      count: 2
+      areas: 4
+      delay: 0.4
+      interval: 0.7
+  - label: '4: Mixed directions'
+    batches:
+    - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      count: 3
+      areas: 2
+      delay: 0
+      interval: 0.7
+    - prefab: {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
+      count: 2
+      areas: 8
+      delay: 0.5
+      interval: 0.7
+    - prefab: {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
+      count: 2
+      areas: 1
+      delay: 1
+      interval: 0.7
+  - label: '5: Largest mixed wave'
+    batches:
+    - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      count: 4
+      areas: 30
+      delay: 0
+      interval: 0.5
+    - prefab: {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
+      count: 4
+      areas: 30
+      delay: 0.5
+      interval: 0.5
+    - prefab: {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
+      count: 3
+      areas: 1
+      delay: 1
+      interval: 0.5
+  initialDelay: 0.6
+  interWaveDelay: 2
+  maxSpawnsPerFrame: 2
+  minimumEnemyDistance: 1.6
+  minimumPlayerDistance: 3
+  groundMargin: 0.6
+  probeHeight: 3
+  probeDepth: 6
+  candidateAttempts: 13
+  retryInterval: 0.25
+  blockedTimeout: 10
