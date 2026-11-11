@@ -25,6 +25,9 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0f)] float hitRecovery = 0.1f;
     [Tooltip("斬り戻し後の硬直(秒)、空振りのとき")]
     [SerializeField, Min(0f)] float whiffRecovery = 0.6f;
+    // 仕様は「斬り抜けた直後」とだけあるので仮の値。切り返しの溜めを見せたくなったら増やす
+    [Tooltip("大銘「返し」で、1回目を斬り抜けてから逆向きに斬り抜け始めるまでの間(秒)。この間も無敵")]
+    [SerializeField, Min(0f)] float returnSlashDelay = 0f;
 
     [Header("線と吹き飛ばし")]
     [Tooltip("線の幅(m)")]
@@ -91,6 +94,7 @@ public sealed class PlayerTuning : ScriptableObject
     public float SlashDuration => slashDuration;
     public float HitRecovery => hitRecovery;
     public float WhiffRecovery => whiffRecovery;
+    public float ReturnSlashDelay => returnSlashDelay;
     public float LineWidth => lineWidth;
     public float BaseLaunchPower => baseLaunchPower;
     public float LengthBonusPerMeter => lengthBonusPerMeter;

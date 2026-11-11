@@ -32,6 +32,12 @@ public static class GameContext
     /// </summary>
     public static float AutoReturnRemaining { get; set; }
 
+    /// <summary>
+    /// 自動で斬り戻すまでの今の制限時間(秒)。書くのは髙橋。刀が刺さっていない間は 0。
+    /// 群がり数と銘で途中でも変わる。残り時間をゲージの割合で見せるとき、計算式を持たずに済むようにするため
+    /// </summary>
+    public static float AutoReturnLimit { get; set; }
+
     // ドメインリロードを切った再生でも、前回の状態が残らないようにする
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay()
@@ -41,5 +47,6 @@ public static class GameContext
         IsSwordPlanted = false;
         SwordPosition = Vector3.zero;
         AutoReturnRemaining = 0f;
+        AutoReturnLimit = 0f;
     }
 }
