@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -20,6 +21,9 @@ public sealed class PlayerHealth : MonoBehaviour
     readonly Collider[] overlapBuffer = new Collider[OVERLAP_BUFFER_SIZE];
     CharacterController characterController;
     float invincibleRemaining;
+    // 演出の無敵。被弾後の無敵とは分け、点滅(IsDamageInvincible)を出さない
+    readonly HashSet<object> invincibleOwners = new HashSet<object>();
+    float grantedInvincibleRemaining;
     // 被弾で残りが 0 になった(本当の終わり)。銘で上限が下がっただけのときと見分けるため
     bool isDefeated;
 
@@ -31,6 +35,9 @@ public sealed class PlayerHealth : MonoBehaviour
 
     /// <summary>被弾後の無敵の最中か。点滅などの見た目で使う</summary>
     public bool IsDamageInvincible => invincibleRemaining > 0f;
+
+    /// <summary>演出などで無敵にされているか(被弾後の無敵は含まない)</summary>
+    public bool IsGrantedInvincible => invincibleOwners.Count > 0 || grantedInvincibleRemaining > 0f;
 
     // 銘で上限が下がっても 1 未満にはしない
     int MaxDamage => Mathf.Max(1, tuning.MaxDamageCount + GameContext.MeiStats.MaxDamageOffset);
@@ -44,6 +51,7 @@ public sealed class PlayerHealth : MonoBehaviour
     void Update()
     {
         if (invincibleRemaining > 0f) invincibleRemaining -= Time.deltaTime;
+        if (grantedInvincibleRemaining > 0f) grantedInvincibleRemaining -= Time.deltaTime;
 
         KeepOneAfterMeiChange();
 
@@ -66,9 +74,27 @@ public sealed class PlayerHealth : MonoBehaviour
         if (DamageTaken >= MaxDamage) DamageTaken = MaxDamage - 1;
     }
 
+    /// <summary>解除するまで無敵にする。owner には呼んだ本人を渡し、ReleaseInvincible で解除する</summary>
+    public void RequestInvincible(object owner)
+    {
+        if (owner != null) invincibleOwners.Add(owner);
+    }
+
+    /// <summary>RequestInvincible で無敵にした本人が解除する</summary>
+    public void ReleaseInvincible(object owner)
+    {
+        if (owner != null) invincibleOwners.Remove(owner);
+    }
+
+    /// <summary>今から seconds 秒(ゲーム内の時間)だけ無敵にする。重なったら長い方を残す</summary>
+    public void GrantInvincible(float seconds)
+    {
+        grantedInvincibleRemaining = Mathf.Max(grantedInvincibleRemaining, seconds);
+    }
+
     bool CanTakeDamage()
     {
-        if (IsDamageInvincible) return false;
+        if (IsDamageInvincible || IsGrantedInvincible) return false;
         if (Remaining <= 0) return false;
         if (controller != null && (controller.IsSlashInvincible || controller.CurrentState == PlayerController.State.Disabled)) return false;
         // 止まっている間は敵も動かないので、その間に被弾させない
