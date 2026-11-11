@@ -15,6 +15,7 @@ using Object = UnityEngine.Object;
 [InitializeOnLoad]
 public static class EnemyLaunchPlayModeChecks
 {
+    static bool running;
     const string KEY = "Sanjo.EnemyLaunchChecks";
     static readonly string OUTPUT = OutputDirectory();
     static EnemyLaunchDemo demo;
@@ -39,7 +40,14 @@ public static class EnemyLaunchPlayModeChecks
     }
     static void OnState(PlayModeStateChange state)
     {
+        // 手動停止は失敗終了と分ける。Editorを閉じず、次の通常Playへ検証を持ち越さない。
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (running || SessionState.GetBool(KEY, false)) Cleanup();
+            return;
+        }
         if (state != PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(KEY, false)) return;
+        running = true;
         demo = Object.FindFirstObjectByType<EnemyLaunchDemo>();
         results.Clear();falls.Clear();teeters = glows = launches = gameOvers = frame = 0;
         previousMei = GameContext.MeiStats;
@@ -186,6 +194,8 @@ public static class EnemyLaunchPlayModeChecks
 
     static void Update()
     {
+        // 同じEditor更新で停止が通知された場合も、破棄されたシーンへ触れない。
+        if (!running || !EditorApplication.isPlaying) return;
         if (!EditorApplication.isPlaying) return;
         try
         {
@@ -212,13 +222,22 @@ public static class EnemyLaunchPlayModeChecks
         }
         finally { RenderTexture.active = previous;RenderTexture.ReleaseTemporary(rt); }
     }
-    static void Finish(Exception error)
+    /// <summary>通常完了と手動停止で共有する後始末。ここでは結果の保存やEditor終了を行わない。</summary>
+    static void Cleanup()
     {
-        EditorApplication.update -= Update;SessionState.SetBool(KEY, false);
+        EditorApplication.update -= Update;SessionState.EraseBool(KEY);
         GameEvents.EnemyFell -= OnFell;GameEvents.EnemyTeetered -= OnTeeter;GameEvents.GlowChanged -= OnGlow;
         GameEvents.GameOver -= OnGameOver;EnemyMotionEvents.Launched -= OnLaunch;
         if (pauseOwner != null) TimeController.ReleasePause(pauseOwner);
         GameContext.MeiStats = previousMei;
+        scenario = null; demo = null; pauseOwner = null; previousMei = null;
+        running = false;
+    }
+
+    static void Finish(Exception error)
+    {
+        if (!running) return;
+        Cleanup();
         File.WriteAllText(OUTPUT + "playmode-result.txt", (error == null ? "PASS" : "FAIL: " + error) + "\n" + string.Join("\n", results));
         if (error == null) Debug.Log("ENEMY_LAUNCH_PLAYMODE_PASS " + results.Count + " checks");else Debug.LogException(error);
         EditorApplication.Exit(error == null ? 0 : 1);

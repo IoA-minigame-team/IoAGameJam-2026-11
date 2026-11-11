@@ -17,6 +17,7 @@ using Object=UnityEngine.Object;
 [InitializeOnLoad]
 public static class LatestPlayerHandoffChecks
 {
+    static bool running;
     const string KEY="Sanjo.LatestPlayerHandoffChecks";
     static readonly string OUTPUT=OutputDirectory();
     static readonly List<string> results=new List<string>(),events=new List<string>();
@@ -56,7 +57,14 @@ public static class LatestPlayerHandoffChecks
     }
     static void OnState(PlayModeStateChange change)
     {
+        // 手動停止は失敗終了と分ける。Editorを閉じず、次の通常Playへ検証を持ち越さない。
+        if (change == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (running || SessionState.GetBool(KEY, false)) Cleanup();
+            return;
+        }
         if(change!=PlayModeStateChange.EnteredPlayMode||!SessionState.GetBool(KEY,false))return;
+        running = true;
         player=Object.FindFirstObjectByType<PlayerController>();health=player.GetComponent<PlayerHealth>();flow=Object.FindFirstObjectByType<WaveController>();ground=Object.FindFirstObjectByType<MeshCollider>();
         heroAnimator=player.GetComponentInChildren<Animator>();trails=player.GetComponentsInChildren<TrailRenderer>(true);originalStats=GameContext.MeiStats;
         playerTuning=(PlayerTuning)new SerializedObject(player).FindProperty("tuning").objectReferenceValue;
@@ -179,6 +187,8 @@ public static class LatestPlayerHandoffChecks
     }
     static void Update()
     {
+        // 同じEditor更新で停止が通知された場合も、破棄されたシーンへ触れない。
+        if (!running || !EditorApplication.isPlaying) return;
         if(!EditorApplication.isPlaying)return;
         try
         {
@@ -228,13 +238,24 @@ public static class LatestPlayerHandoffChecks
         }
         finally{RenderTexture.active=previous;RenderTexture.ReleaseTemporary(rt);}
     }
-    static void Finish(Exception error)
+    /// <summary>通常完了と手動停止で共有する後始末。ここでは結果の保存やEditor終了を行わない。</summary>
+    static void Cleanup()
     {
-        EditorApplication.update-=Update;SessionState.SetBool(KEY,false);GameContext.MeiStats=originalStats;
+        EditorApplication.update-=Update;SessionState.EraseBool(KEY);GameContext.MeiStats=originalStats;
         GameEvents.WaveStarted-=OnStarted;GameEvents.WaveCleared-=OnCleared;GameEvents.PlayerDamaged-=OnDamage;
         GameEvents.SwordPlanted-=OnSword;GameEvents.SlashStarted-=OnSlash;GameEvents.EnemyHit-=OnHit;
         GameEvents.GlowChanged-=OnGlow;GameEvents.EnemyFell-=OnFell;GameEvents.GameOver-=OnGameOver;EnemyMotionEvents.AttackStarted-=OnAttack;
-        if(pad!=null){Send(Vector2.zero,false);InputSystem.RemoveDevice(pad);pad=null;}
+        if (pad != null && pad.added) InputSystem.RemoveDevice(pad);
+        pad = null; stick = Vector2.zero; plant = false;
+        scenario = null; until = null; player = null; health = null; flow = null; ground = null; routeEnemy = null; heroAnimator = null; trails = null; originalStats = null;
+        SessionState.EraseBool(KEY + ".source"); SessionState.EraseBool(KEY + ".spawnValid");
+        running = false;
+    }
+
+    static void Finish(Exception error)
+    {
+        if (!running) return;
+        Cleanup();
         File.WriteAllText(OUTPUT+"playmode-result.txt",(error==null?"PASS":"FAIL: "+error)+"\n"+string.Join("\n",results));
         File.WriteAllText(OUTPUT+"shared-events.tsv",string.Join("\n",events));
         if(error==null)Debug.Log("LATEST_PLAYER_HANDOFF_PASS "+results.Count+" checks");else Debug.LogException(error);

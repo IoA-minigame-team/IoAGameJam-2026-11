@@ -36,6 +36,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
     public MotionState State { get; private set; }
     public bool IsStoppedByGameOver => stoppedByGameOver;
     public EnemyTuning Tuning => tuning;
+    public CapsuleCollider BodyCollider => bodyCollider;
     /// <summary>追跡と攻撃に共通の再開条件。移動の停止だけでなく、見た目の復帰完了も待つ。</summary>
     public bool CanPursue => isActiveAndEnabled && tuning != null && State == MotionState.Idle && !stoppedByGameOver && !presentationBusy
         && !TimeController.IsPaused && !TimeController.IsHitStopping;
@@ -70,6 +71,12 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
         available = distance;
         if (bodyCollider == null) return false;
         GetWorldCapsule(out var bottom, out var top, out float radius);
+        // CapsuleCastは開始時点ですでに重なる柵を拾わない。先に同じ形の重なりを調べ、移動量を0にする。
+        if (Physics.CheckCapsule(bottom, top, radius, movementObstacleMask, QueryTriggerInteraction.Ignore))
+        {
+            available = 0;
+            return true;
+        }
         if (!Physics.CapsuleCast(bottom, top, radius, direction, out var hit, distance, movementObstacleMask, QueryTriggerInteraction.Ignore)) return false;
         // CapsuleCastは形全体を掃引済みなので、半径をもう一度引かない。
         available = Mathf.Max(0, hit.distance);
@@ -78,20 +85,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
 
     void GetWorldCapsule(out Vector3 bottom, out Vector3 top, out float radius)
     {
-        // Collider.boundsはCollider無効中に空になる。吹き飛び中も使えるよう定義値から形を作る。
-        var bodyTransform = bodyCollider.transform;
-        Vector3 scale = bodyTransform.lossyScale;
-        scale = new Vector3(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
-        int axis = bodyCollider.direction;
-        Vector3 localAxis = axis == 0 ? Vector3.right : axis == 1 ? Vector3.up : Vector3.forward;
-        float axisScale = axis == 0 ? scale.x : axis == 1 ? scale.y : scale.z;
-        float radialScale = axis == 0 ? Mathf.Max(scale.y, scale.z) : axis == 1 ? Mathf.Max(scale.x, scale.z) : Mathf.Max(scale.x, scale.y);
-        radius = bodyCollider.radius * radialScale;
-        float halfSegment = Mathf.Max(0, bodyCollider.height * axisScale * .5f - radius);
-        Vector3 center = bodyTransform.TransformPoint(bodyCollider.center);
-        Vector3 offset = bodyTransform.TransformDirection(localAxis).normalized * halfSegment;
-        bottom = center - offset;
-        top = center + offset;
+        EnemyCapsuleGeometry.GetWorld(bodyCollider, out bottom, out top, out radius);
     }
 
     void Awake()
@@ -180,20 +174,29 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
             if (transform.position.y <= fallStartHeight - tuning.FallDepth) FallOff();
             return;
         }
-        if (!HasGround(transform.position)) { BeginFall(); return; }
+        if (!TryGround(transform.position, out var currentGround)) { BeginFall(); return; }
+        // 島は平面とは限らない。摩擦の計算は水平のまま、足元の高さだけを地面へ合わせる。
+        transform.position = new Vector3(transform.position.x, currentGround.point.y, transform.position.z);
         float speed = velocity.magnitude;
         if (speed <= tuning.StopSpeed) { StopOnGround(); return; }
         var direction = velocity / speed;
         // 一定減速の式で積分する。フレームレートで停止距離が変わりにくい。
         float moveTime = Mathf.Min(dt, speed / tuning.Friction);
         float distance = speed * moveTime - .5f * tuning.Friction * moveTime * moveTime;
-        if(ObstacleDistance(direction,distance,out float available))
+        Vector3 destination = transform.position + direction * distance;
+        bool hasDestinationGround = TryGround(destination, out var destinationGround);
+        if (hasDestinationGround) destination.y = destinationGround.point.y;
+        Vector3 displacement = destination - transform.position;
+        float travel = displacement.magnitude;
+        Vector3 travelDirection = travel > .000001f ? displacement / travel : direction;
+        // 高さが変わる場所でも、実際に動く3D方向へColliderを掃引して柵との接触を調べる。
+        if(ObstacleDistance(travelDirection,travel,out float available))
         {
-            transform.position+=direction*available;velocity=Vector3.zero;StopOnGround();return;
+            transform.position+=travelDirection*available;velocity=Vector3.zero;StopOnGround();return;
         }
-        transform.position += direction * distance;
+        transform.position = destination;
         velocity = direction * Mathf.Max(0f, speed - tuning.Friction * dt);
-        if (!HasGround(transform.position)) BeginFall();
+        if (!hasDestinationGround) BeginFall();
         else if (velocity.magnitude <= tuning.StopSpeed) StopOnGround();
     }
 

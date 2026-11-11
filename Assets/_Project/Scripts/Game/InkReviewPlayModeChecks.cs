@@ -18,6 +18,8 @@ using Object=UnityEngine.Object;
 [InitializeOnLoad]
 public static class InkReviewPlayModeChecks
 {
+    static bool settingsCaptured, previousRunInBackground;
+    static bool running;
     const string KEY="Sanjo.InkReviewChecks";
     static readonly string OUTPUT=OutputDirectory();
     static readonly List<string> checks=new List<string>(),events=new List<string>();
@@ -45,10 +47,21 @@ public static class InkReviewPlayModeChecks
     public static void Run(){SessionState.SetBool(KEY,true);EditorSceneManager.OpenScene(InkReviewAssetSetup.REVIEW_SCENE);EditorApplication.EnterPlaymode();}
     static void OnState(PlayModeStateChange state)
     {
+        // 手動停止は失敗終了と分ける。Editorを閉じず、次の通常Playへ検証を持ち越さない。
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (running || SessionState.GetBool(KEY, false)) Cleanup();
+            return;
+        }
         if(state!=PlayModeStateChange.EnteredPlayMode||!SessionState.GetBool(KEY,false))return;
+        running = true;
+        previousRunInBackground = Application.runInBackground;
+        previousBackground = InputSystem.settings.backgroundBehavior;
+        previousEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+        settingsCaptured = true;
         Bind();Application.runInBackground=true;checks.Clear();events.Clear();damages.Clear();attacks.Clear();hitActors.Clear();stack.Clear();frame=gameovers=firstSpawnCount=titleRequests=0;
-        previousBackground=InputSystem.settings.backgroundBehavior;InputSystem.settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
-        previousEditorInput=InputSystem.settings.editorInputBehaviorInPlayMode;InputSystem.settings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+        InputSystem.settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
+        InputSystem.settings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
         pad=InputSystem.AddDevice<Gamepad>("InkReviewTestPad");mouse=InputSystem.AddDevice<Mouse>("InkReviewTestMouse");MoveMouse(new Vector2(5,Screen.height*.5f),false);SendPad(Vector3.zero,false);
         GameEvents.WaveStarted+=OnStarted;GameEvents.WaveCleared+=OnCleared;GameEvents.PlayerDamaged+=OnDamage;GameEvents.GameOver+=OnGameOver;
         GameEvents.SwordPlanted+=OnSword;GameEvents.EnemyHit+=OnHit;EnemyMotionEvents.AttackStarted+=OnAttack;
@@ -178,6 +191,8 @@ public static class InkReviewPlayModeChecks
     }
     static void Update()
     {
+        // 同じEditor更新で停止が通知された場合も、破棄されたシーンへ触れない。
+        if (!running || !EditorApplication.isPlaying) return;
         if(!EditorApplication.isPlaying)return;
         try
         {
@@ -213,15 +228,31 @@ public static class InkReviewPlayModeChecks
         }
         finally{camera.targetTexture=oldTarget;view.Canvas.scaleFactor=oldScale;scaler.enabled=scalerEnabled;Canvas.ForceUpdateCanvases();RenderTexture.active=previous;RenderTexture.ReleaseTemporary(rt);}
     }
-    static void Finish(Exception error)
+    /// <summary>通常完了と手動停止で共有する後始末。ここでは結果の保存やEditor終了を行わない。</summary>
+    static void Cleanup()
     {
-        EditorApplication.update-=Update;SessionState.SetBool(KEY,false);
+        EditorApplication.update-=Update;SessionState.EraseBool(KEY);
         GameEvents.WaveStarted-=OnStarted;GameEvents.WaveCleared-=OnCleared;GameEvents.PlayerDamaged-=OnDamage;GameEvents.GameOver-=OnGameOver;
         GameEvents.SwordPlanted-=OnSword;GameEvents.EnemyHit-=OnHit;EnemyMotionEvents.AttackStarted-=OnAttack;
         GameScreenEvents.TitleRequested-=OnTitleRequested;
-        if(pad!=null)InputSystem.RemoveDevice(pad);if(mouse!=null)InputSystem.RemoveDevice(mouse);
-        InputSystem.settings.backgroundBehavior=previousBackground;
-        InputSystem.settings.editorInputBehaviorInPlayMode=previousEditorInput;
+        if (pad != null && pad.added) InputSystem.RemoveDevice(pad);
+        if (mouse != null && mouse.added) InputSystem.RemoveDevice(mouse);
+        pad = null; mouse = null;
+        if (settingsCaptured)
+        {
+            InputSystem.settings.backgroundBehavior = previousBackground;
+            InputSystem.settings.editorInputBehaviorInPlayMode = previousEditorInput;
+            Application.runInBackground = previousRunInBackground;
+            settingsCaptured = false;
+        }
+        stack.Clear(); hitActors.Clear(); condition = null; session = null; view = null; player = null;
+        running = false;
+    }
+
+    static void Finish(Exception error)
+    {
+        if (!running) return;
+        Cleanup();
         File.WriteAllText(OUTPUT+"playmode-result.txt",(error==null?"PASS":"FAIL: "+error)+"\n"+string.Join("\n",checks));File.WriteAllText(OUTPUT+"shared-events.tsv",string.Join("\n",events));
         if(error==null)Debug.Log("INK_REVIEW_PLAYMODE_PASS "+checks.Count+" checks");else Debug.LogException(error);EditorApplication.Exit(error==null?0:1);
     }

@@ -71,6 +71,12 @@ public sealed class EnemyActionAnimation : MonoBehaviour
         IsStoppedByGameOver = false;
         spawnPending = true;
         if (animator != null) animator.speed = 1f;
+        // 表示だけを戻してもラウンドの終了は解除しない。Root側が保持する終了状態を読み直す。
+        if (launchable is Enemy enemy && enemy.IsStoppedByGameOver)
+        {
+            spawnPending = false;
+            OnGameOver();
+        }
     }
     void OnDisable()
     {

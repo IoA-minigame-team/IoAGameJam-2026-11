@@ -69,6 +69,8 @@ public sealed class InkReviewInterface : MonoBehaviour
         GameEvents.WaveStarted+=OnWaveStarted;GameEvents.WaveCleared+=OnWaveCleared;GameEvents.GameOver+=OnGameOver;
         GameEvents.SwordPlanted+=OnSword;GameEvents.SlashStarted+=OnSlash;GameEvents.PlayerDamaged+=OnDamaged;
         GameEvents.EnemyFell+=OnFell;EnemyMotionEvents.AttackStarted+=OnAttack;
+        // 無効中は停止要求を解放するが、「一時停止中」「開戦表示中」という画面状態は維持する。
+        UpdatePause();
     }
     void OnDisable()
     {
@@ -76,6 +78,8 @@ public sealed class InkReviewInterface : MonoBehaviour
         GameEvents.SwordPlanted-=OnSword;GameEvents.SlashStarted-=OnSlash;GameEvents.PlayerDamaged-=OnDamaged;
         GameEvents.EnemyFell-=OnFell;EnemyMotionEvents.AttackStarted-=OnAttack;
         TimeController.ReleasePause(this);TimeController.ReleasePause(hoverPauseOwner);
+        // これはTimeControllerへ適用済みかのキャッシュ。再表示時に停止要求を出し直せるようにする。
+        menuPaused=false;hoverPaused=false;
     }
     void OnWaveStarted(int number)
     {

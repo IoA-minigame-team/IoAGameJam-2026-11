@@ -15,6 +15,7 @@ using Object = UnityEngine.Object;
 [InitializeOnLoad]
 public static class EnemyWavePlayModeChecks
 {
+    static bool running;
     const string KEY = "Sanjo.EnemyWaveChecks";
     static readonly string OUTPUT = OutputDirectory();
     static readonly List<string> checks = new List<string>();
@@ -53,7 +54,14 @@ public static class EnemyWavePlayModeChecks
     }
     static void OnState(PlayModeStateChange state)
     {
+        // 手動停止は失敗終了と分ける。Editorを閉じず、次の通常Playへ検証を持ち越さない。
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (running || SessionState.GetBool(KEY, false)) Cleanup();
+            return;
+        }
         if (state != PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(KEY, false)) return;
+        running = true;
         demo = Object.FindFirstObjectByType<EnemyWaveDemo>();flow = demo.Flow;spawner = flow.Spawner;originalPlan = flow.Plan;
         originalPlayer = GameContext.PlayerTransform;
         GameEvents.WaveStarted += OnStarted;GameEvents.WaveCleared += OnCleared;GameEvents.EnemyFell += OnFell;GameEvents.GameOver += OnGameOver;
@@ -201,6 +209,8 @@ public static class EnemyWavePlayModeChecks
     }
     static void Update()
     {
+        // 同じEditor更新で停止が通知された場合も、破棄されたシーンへ触れない。
+        if (!running || !EditorApplication.isPlaying) return;
         if (!EditorApplication.isPlaying) return;
         try
         {
@@ -237,12 +247,21 @@ public static class EnemyWavePlayModeChecks
         }
         finally { RenderTexture.active = previous;RenderTexture.ReleaseTemporary(rt); }
     }
-    static void Finish(Exception error)
+    /// <summary>通常完了と手動停止で共有する後始末。ここでは結果の保存やEditor終了を行わない。</summary>
+    static void Cleanup()
     {
-        EditorApplication.update -= Update;SessionState.SetBool(KEY, false);
+        EditorApplication.update -= Update;SessionState.EraseBool(KEY);
         GameEvents.WaveStarted -= OnStarted;GameEvents.WaveCleared -= OnCleared;GameEvents.EnemyFell -= OnFell;GameEvents.GameOver -= OnGameOver;
         if (pauseOwner != null) TimeController.ReleasePause(pauseOwner);
         GameContext.PlayerTransform = originalPlayer;
+        scenario = null; until = null; demo = null; flow = null; spawner = null; originalPlan = null; testPlan = null; testPlayer = null; originalPlayer = null; pauseOwner = null;
+        running = false;
+    }
+
+    static void Finish(Exception error)
+    {
+        if (!running) return;
+        Cleanup();
         File.WriteAllText(OUTPUT + "playmode-result.txt", (error == null ? "PASS" : "FAIL: " + error) + "\n" + string.Join("\n", checks));
         File.WriteAllLines(OUTPUT + "spawn-log.tsv", spawnRecords);
         if (error == null) Debug.Log("ENEMY_WAVE_PLAYMODE_PASS " + checks.Count + " checks");else Debug.LogException(error);

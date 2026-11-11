@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEditor;
@@ -48,8 +49,14 @@ public static class LatestPlayerHandoffSetup
         else
         {
             player=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PLAYER),scene);
-            player.name="Player";player.transform.SetPositionAndRotation(old.transform.position,old.transform.rotation);
+            player.name="Player";
+            player.transform.SetParent(old.transform.parent,false);
+            player.transform.SetPositionAndRotation(old.transform.position,old.transform.rotation);
+            player.transform.localScale=old.transform.localScale;
+            player.transform.SetSiblingIndex(old.transform.GetSiblingIndex());
             Undo.RegisterCreatedObjectUndo(player,"最新主人公を接続");
+            try { RemapSceneReferences(old.gameObject,player); }
+            catch { Undo.DestroyObjectImmediate(player); throw; }
         }
         var camera=Camera.main;if(camera==null)throw new Exception("MainCameraがありません。");
         var controllerData=new SerializedObject(player.GetComponent<PlayerController>());controllerData.FindProperty("cameraTransform").objectReferenceValue=camera.transform;controllerData.ApplyModifiedProperties();
@@ -64,6 +71,50 @@ public static class LatestPlayerHandoffSetup
             PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ROOT+"Prefabs/PostProcessVolume.prefab"),scene);
         Undo.RecordObject(camera.GetUniversalAdditionalCameraData(),"主人公の剣の発光を接続");camera.GetUniversalAdditionalCameraData().renderPostProcessing=true;
         EditorSceneManager.MarkSceneDirty(scene);
+    }
+
+    static void RemapSceneReferences(GameObject oldRoot,GameObject newRoot)
+    {
+        var mapping=new Dictionary<Object,Object>();
+        foreach(var oldTransform in oldRoot.GetComponentsInChildren<Transform>(true))
+        {
+            string path=AnimationUtility.CalculateTransformPath(oldTransform,oldRoot.transform);
+            var target=string.IsNullOrEmpty(path)?newRoot.transform:newRoot.transform.Find(path);
+            if(target==null)continue;
+            mapping[oldTransform.gameObject]=target.gameObject;
+            foreach(var component in oldTransform.GetComponents<Component>())
+            {
+                if(component==null)continue;
+                var oldPeers=oldTransform.GetComponents(component.GetType());
+                var newPeers=target.GetComponents(component.GetType());
+                int index=Array.IndexOf(oldPeers,component);
+                if(index<newPeers.Length)mapping[component]=newPeers[index];
+            }
+        }
+        var edits=new List<(Component component,string property,Object value)>();
+        foreach(var root in oldRoot.scene.GetRootGameObjects())
+        foreach(var component in root.GetComponentsInChildren<Component>(true))
+        {
+            if(component==null||component.transform.IsChildOf(oldRoot.transform)||component.transform.IsChildOf(newRoot.transform))continue;
+            var data=new SerializedObject(component);
+            var property=data.GetIterator();
+            while(property.Next(true))
+            {
+                if(property.propertyType!=SerializedPropertyType.ObjectReference)continue;
+                Object value=property.objectReferenceValue;
+                if(value==null)continue;
+                if(mapping.TryGetValue(value,out var replacement))edits.Add((component,property.propertyPath,replacement));
+                else if((value is Component c&&c.transform.IsChildOf(oldRoot.transform))||(value is GameObject g&&g.transform.IsChildOf(oldRoot.transform)))
+                    throw new Exception("置換先がない主人公参照を確認してください: "+component.name+" / "+property.propertyPath);
+            }
+        }
+        // 全参照を点検してからまとめて変更する。対応しない子部品があれば旧主人公を残して止める。
+        foreach(var edit in edits)
+        {
+            var data=new SerializedObject(edit.component);
+            data.FindProperty(edit.property).objectReferenceValue=edit.value;
+            data.ApplyModifiedProperties();
+        }
     }
 }
 #endif

@@ -12,6 +12,7 @@ using Object = UnityEngine.Object;
 [InitializeOnLoad]
 public static class EnemyReviewRegressionChecks
 {
+    static bool running;
     const string KEY = "Sanjo.EnemyReviewRegression";
     const string PREFAB = "Assets/_Project/Prefabs/FloatingShadowEnemy.prefab";
     static readonly List<string> checks = new List<string>();
@@ -47,7 +48,14 @@ public static class EnemyReviewRegressionChecks
 
     static void OnState(PlayModeStateChange state)
     {
+        // 手動停止は失敗終了と分ける。Editorを閉じず、次の通常Playへ検証を持ち越さない。
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (running || SessionState.GetBool(KEY, false)) Cleanup();
+            return;
+        }
         if (state != PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(KEY, false)) return;
+        running = true;
         var args = Environment.GetCommandLineArgs();
         int index = Array.IndexOf(args, "-sanjoReviewOutput");
         output = index >= 0 ? args[index + 1] : Path.Combine(Path.GetTempPath(), "HitofuriEnemyReviewChecks");
@@ -157,6 +165,8 @@ public static class EnemyReviewRegressionChecks
 
     static void Update()
     {
+        // 同じEditor更新で停止が通知された場合も、破棄されたシーンへ触れない。
+        if (!running || !EditorApplication.isPlaying) return;
         try
         {
             if (EditorApplication.timeSinceStartup - realStart > 120) throw new Exception("Overall timeout");
@@ -179,10 +189,19 @@ public static class EnemyReviewRegressionChecks
         catch (Exception error) { Finish(error); }
     }
 
-    static void Finish(Exception error)
+    /// <summary>通常完了と手動停止で共有する後始末。ここでは結果の保存やEditor終了を行わない。</summary>
+    static void Cleanup()
     {
         EditorApplication.update -= Update; EnemyMotionEvents.AttackStarted -= OnAttack; GameContext.PlayerTransform = previousPlayer;
-        SessionState.SetBool(KEY, false);
+        SessionState.EraseBool(KEY);
+        scenario = null; pending = null; observed = null; presentation = null; player = null; previousPlayer = null;
+        running = false;
+    }
+
+    static void Finish(Exception error)
+    {
+        if (!running) return;
+        Cleanup();
         string result = error == null && failures.Count == 0 ? "PASS" : "FAIL";
         File.WriteAllText(Path.Combine(output, "result.txt"), result + "\n" + string.Join("\n", checks) + (error != null ? "\n" + error : ""));
         Debug.Log("ENEMY_REVIEW_REGRESSION_" + result + " " + checks.Count + " checks, " + failures.Count + " failures");

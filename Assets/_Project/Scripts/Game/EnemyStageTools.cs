@@ -99,7 +99,7 @@ public sealed class EnemyStageTools : EditorWindow
             }
             if(GUILayout.Button("出現計画を保存")){ApplyPlan();AssetDatabase.SaveAssetIfDirty(plan);}
         }
-        if(EditorApplication.isPlaying&&flow!=null)EditorGUILayout.LabelField("実行中",flow.State+"　波 "+flow.CurrentWaveNumber+"　予定 "+flow.PendingCount+"　島上 "+flow.Spawner.AliveCount);
+        if(EditorApplication.isPlaying&&flow!=null)EditorGUILayout.LabelField("実行中",flow.State+"　波 "+flow.CurrentWaveNumber+"　予定 "+flow.PendingCount+"　島上 "+(flow.Spawner!=null?flow.Spawner.AliveCount.ToString():"出現管理が未設定"));
     }
     void ApplyPlan(){planData.ApplyModifiedProperties();EditorUtility.SetDirty(plan);}
     static void SetPlan(Object target,EnemyWavePlan value){var data=new SerializedObject(target);data.FindProperty("plan").objectReferenceValue=value;data.ApplyModifiedProperties();}
@@ -118,12 +118,12 @@ public sealed class EnemyStageTools : EditorWindow
         {
             if(GUILayout.Button("出現ポイントを追加"))
             {
-                var node=new GameObject("SpawnPoint_"+(flow.Spawner.Points.Length+1));Undo.RegisterCreatedObjectUndo(node,"出現点を追加");
+                var node=new GameObject("SpawnPoint_"+((flow.Spawner.Points?.Length??0)+1));Undo.RegisterCreatedObjectUndo(node,"出現点を追加");
                 Undo.SetTransformParent(node.transform,flow.Spawner.transform,"出現点の親を設定");node.transform.localPosition=Vector3.zero;
                 var point=Undo.AddComponent<EnemySpawnPoint>(node);var data=new SerializedObject(flow.Spawner);var points=data.FindProperty("points");
                 int index=points.arraySize;points.InsertArrayElementAtIndex(index);points.GetArrayElementAtIndex(index).objectReferenceValue=point;data.ApplyModifiedProperties();Selection.activeGameObject=node;DirtyScene();
             }
-            foreach(var point in flow.Spawner.Points)
+            foreach(var point in flow.Spawner.Points??Array.Empty<EnemySpawnPoint>())
             {
                 if(point==null)continue;
                 using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
@@ -163,16 +163,31 @@ public sealed class EnemyStageTools : EditorWindow
         result.Add(players.Length==1?"OK 主人公は1体":"NG 主人公の数が "+players.Length);
         if(players.Length==1&&!EditorApplication.isPlaying)result.Add(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(players[0].gameObject)==LatestPlayerHandoffSetup.PLAYER?"OK 最新Player.prefabを直接参照":"要確認 主人公が旧Prefabまたは別Prefabです");
         if(controller==null||controller.Plan==null||controller.Spawner==null){result.Add("NG ウェーブ計画か出現管理が未設定");return result;}
+        // 編集途中に波やグループをすべて削除しても、点検自体を例外で止めない。
+        var points=controller.Spawner.Points??Array.Empty<EnemySpawnPoint>();
         Physics.SyncTransforms();int good=0;
-        foreach(var point in controller.Spawner.Points)if(point!=null&&point.gameObject.activeInHierarchy){if(Physics.Raycast(point.transform.position+Vector3.up*3,Vector3.down,6,1,QueryTriggerInteraction.Ignore))good++;else result.Add("NG 足場がない出現点: "+point.name);}
-        result.Add((good>0?"OK":"NG")+" 有効な床上の出現点 "+good);
-        var spawnData=new SerializedObject(controller.Spawner);
-        if(spawnData.FindProperty("plan").objectReferenceValue!=controller.Plan)result.Add("NG 進行と出現で異なる出現計画が設定されています");
-        foreach(var wave in controller.Plan.Waves)foreach(var batch in wave.Batches)
+        foreach(var point in points)
         {
-            if(batch.Prefab==null||batch.Prefab.GetComponent<Enemy>()==null)result.Add("NG Enemyを持たない出現Prefab");
-            else if(batch.Prefab.GetComponent<Enemy>().Tuning==null)result.Add("NG EnemyTuningが未設定: "+batch.Prefab.name);
-            else if(!controller.Spawner.Points.Any(p=>p!=null&&p.gameObject.activeInHierarchy&&(p.Areas&batch.Areas)!=0))result.Add("NG 区域に対応する出現点がありません: "+batch.Prefab.name);
+            if(point==null){result.Add("NG 出現ポイントの参照がありません");continue;}
+            if(!point.isActiveAndEnabled)continue;
+            if(Physics.Raycast(point.transform.position+Vector3.up*3,Vector3.down,6,1,QueryTriggerInteraction.Ignore))good++;
+            else result.Add("NG 足場がない出現点: "+point.name);
+        }
+        result.Add((good>0?"OK":"NG")+" 有効な床上の出現点 "+good);
+        if(controller.Spawner.Plan!=controller.Plan)result.Add("NG 進行と出現で異なる出現計画が設定されています");
+        var waves=controller.Plan.Waves;
+        if(waves==null||waves.Length==0)result.Add("NG ウェーブがありません。最初の波を追加してください");
+        for(int i=0;waves!=null&&i<waves.Length;i++)
+        {
+            var wave=waves[i];
+            if(wave==null||wave.Batches==null||wave.Batches.Length==0){result.Add("NG 第"+(i+1)+"波の出現グループがありません");continue;}
+            foreach(var batch in wave.Batches)
+            {
+                if(batch==null){result.Add("NG 第"+(i+1)+"波の出現グループが未設定です");continue;}
+                if(batch.Prefab==null||!batch.Prefab.TryGetComponent<Enemy>(out var enemy)){result.Add("NG 第"+(i+1)+"波: Enemyを持たない出現Prefab");continue;}
+                if(enemy.Tuning==null)result.Add("NG EnemyTuningが未設定: "+batch.Prefab.name);
+                if(!points.Any(p=>p!=null&&p.isActiveAndEnabled&&(p.Areas&batch.Areas)!=0))result.Add("NG 区域に対応する出現点がありません: "+batch.Prefab.name);
+            }
         }
         if(EditorApplication.isPlaying){result.Add(players.Length==1&&GameContext.PlayerTransform==players[0].transform?"OK 主人公の共通参照が登録済み":"NG 主人公の共通参照が不一致");result.Add("銘実装: "+GameContext.MeiStats.GetType().Name);}
         result.Add("波数 "+controller.TotalWaves+"。保存先: "+AssetDatabase.GetAssetPath(controller.Plan));return result;

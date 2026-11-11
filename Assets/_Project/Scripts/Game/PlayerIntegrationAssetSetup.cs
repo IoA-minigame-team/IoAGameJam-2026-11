@@ -166,6 +166,8 @@ public static class PlayerIntegrationAssetSetup
         var camera=Camera.main;if(camera==null)camera=CreateCamera(Vector3.zero);
         else{camera.orthographic=true;camera.orthographicSize=13;if(camera.GetComponent<IntegrationCameraFollow>()==null)camera.gameObject.AddComponent<IntegrationCameraFollow>();camera.transform.position=new Vector3(0,18,12);camera.transform.LookAt(Vector3.zero);}
         if(Object.FindFirstObjectByType<PlayerController>()==null)PlacePlayer(ground,Vector3.zero,camera);
+        // 旧PlayerControllerがすでにあっても、存在確認だけで通さず正規Prefabへ接続する。
+        LatestPlayerHandoffSetup.ConnectCurrentScene();
         var flow=Object.FindFirstObjectByType<WaveController>();ConfigureSystem(flow.gameObject,ground,false);
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
     }

@@ -37,7 +37,13 @@ public sealed class WaveController : MonoBehaviour
         // 同担当のGameOver部品だけを初期化時に取得する。Sharedや他担当のクラスは書き換えない。
         if (gameOver == null) gameOver = FindFirstObjectByType<GameOverController>();
     }
-    void OnEnable() => GameEvents.GameOver += OnGameOver;
+    void OnEnable()
+    {
+        GameEvents.GameOver += OnGameOver;
+        if (gameOver == null) gameOver = FindFirstObjectByType<GameOverController>();
+        // 無効中に終了通知を聞き逃した場合も、出現を再開しない。
+        if (gameOver != null && gameOver.IsGameOver) OnGameOver();
+    }
     void OnDisable() => GameEvents.GameOver -= OnGameOver;
     void Start() { if (startAutomatically && State == WaveState.Ready) QueueStart(); }
 
@@ -54,12 +60,14 @@ public sealed class WaveController : MonoBehaviour
     }
     bool QueueStart()
     {
+        if (gameOver != null && gameOver.IsGameOver) { OnGameOver(); return false; }
         if (!ValidatePlan()) return false;
         delay = plan.InitialDelay;startPending = true;return true;
     }
     bool ValidatePlan()
     {
         if (plan == null || TotalWaves == 0 || spawner == null) { Fault("Wave plan or EnemySpawner is missing.");return false; }
+        if (spawner.Plan != plan) { Fault("WaveController and EnemySpawner must use the same EnemyWavePlan.");return false; }
         foreach (var wave in plan.Waves)
         {
             if (wave == null || wave.Batches == null || wave.Batches.Length == 0) { Fault("Empty wave definition.");return false; }
