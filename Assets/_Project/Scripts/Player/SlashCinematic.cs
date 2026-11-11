@@ -29,7 +29,7 @@ public sealed class SlashCinematic : MonoBehaviour
     const float MIN_DIRECTION_LENGTH = 0.0001f;
 
     [SerializeField] PlayerTuning tuning;
-    [Tooltip("演出を出す主人公")]
+    [Tooltip("演出を出す主人公。空なら GameContext.PlayerTransform の主人公を使う")]
     [SerializeField] PlayerController player;
     [Tooltip("ブレンドの切り替えに使う。空なら Camera.main の CinemachineBrain")]
     [SerializeField] CinemachineBrain brain;
@@ -51,6 +51,8 @@ public sealed class SlashCinematic : MonoBehaviour
     Vector3 lineEnd;
     // 返しの斬り抜けを撮っているか
     bool shootingReturn;
+    // 主人公の SlashBegan を購読しているか。自動で探す場合は OnEnable の時点で見つからないことがあるため
+    bool isBoundToPlayer;
 
     /// <summary>演出の最中か(見下ろしへ戻るブレンドを含む)</summary>
     public bool IsPlaying => phase != Phase.Idle;
@@ -63,7 +65,6 @@ public sealed class SlashCinematic : MonoBehaviour
         if (runInCamera != null) runInCamera.enabled = false;
 
         if (brain == null && Camera.main != null) brain = Camera.main.GetComponent<CinemachineBrain>();
-        if (player != null) playerHealth = player.GetComponent<PlayerHealth>();
 
         // スロー中もカメラを動かす決まりなので、Brain が timeScale に従っているとブレンドが遅れる
         if (brain != null && !brain.IgnoreTimeScale)
@@ -74,15 +75,41 @@ public sealed class SlashCinematic : MonoBehaviour
 
     void OnEnable()
     {
-        if (player != null) player.SlashBegan += OnSlashBegan;
+        BindPlayer();
         GameEvents.GameOver += OnGameOver;
+    }
+
+    // 主人公の OnEnable がこちらより後だと、OnEnable の時点では GameContext.PlayerTransform が空なので、ここでもう一度探す
+    void Start()
+    {
+        BindPlayer();
+        if (!isBoundToPlayer)
+        {
+            Debug.LogWarning("SlashCinematic: 主人公が見つかりません。Player に割り当てるか、主人公をシーンに置いてください", this);
+        }
     }
 
     void OnDisable()
     {
-        if (player != null) player.SlashBegan -= OnSlashBegan;
+        if (isBoundToPlayer) player.SlashBegan -= OnSlashBegan;
+        isBoundToPlayer = false;
         GameEvents.GameOver -= OnGameOver;
         StopImmediately();
+    }
+
+    // Prefab から置いたとき、シーンの主人公を割り当てなくても動くようにする
+    void BindPlayer()
+    {
+        if (isBoundToPlayer) return;
+        if (player == null && GameContext.PlayerTransform != null)
+        {
+            player = GameContext.PlayerTransform.GetComponent<PlayerController>();
+        }
+        if (player == null) return;
+
+        playerHealth = player.GetComponent<PlayerHealth>();
+        player.SlashBegan += OnSlashBegan;
+        isBoundToPlayer = true;
     }
 
     void Update()
