@@ -40,4 +40,6 @@ public enum SeId
     WaveStart,
     /// <summary>大銘「震」の衝撃</summary>
     Shin,
+    /// <summary>盾に正面から弾かれた(髙橋さんの依頼で追加)</summary>
+    ShieldBlock,
 }
