@@ -59,6 +59,7 @@ public sealed class PlayerVisual : MonoBehaviour
     bool hasAnimator;
     bool hasSpeedParam;
     PlayerController.State lastState;
+    bool wasReturnSlashing;
     bool isFirstFrame = true;
     bool accentOn = true;
     bool bodyVisible = true;
@@ -108,6 +109,11 @@ public sealed class PlayerVisual : MonoBehaviour
             isFirstFrame = false;
         }
 
+        // 大銘「返し」は状態が Slashing のまま2回目に入るので、ここで見て斬り抜けの動きを流し直す
+        bool isReturnSlashing = controller.IsReturnSlashing;
+        if (isReturnSlashing && !wasReturnSlashing) RestartSlash();
+        wasReturnSlashing = isReturnSlashing;
+
         UpdateSpeed(state);
         UpdatePoseHold(state);
         UpdateBlink();
@@ -138,6 +144,15 @@ public sealed class PlayerVisual : MonoBehaviour
                 break;
             case PlayerController.State.Disabled: CrossFadeNow(downHash, tuning.AnimationCrossFade); break;
         }
+    }
+
+    void RestartSlash()
+    {
+        if (!hasAnimator || !animator.HasState(BASE_LAYER, slashHash)) return;
+        // 体を逆向きにしてから同じクリップを最初から流す。同じステートへの CrossFade では流し直さないことがあるので Play を使う
+        poseHoldRemaining = 0f;
+        hasPendingCrossFade = false;
+        animator.Play(slashHash, BASE_LAYER, 0f);
     }
 
     // ---- 決めの姿勢を残す ----

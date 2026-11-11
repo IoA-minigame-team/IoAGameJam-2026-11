@@ -24,6 +24,9 @@ public sealed class PlayerTestEnemy : MonoBehaviour, ILaunchable
     [SerializeField] float resetDelay = 1.5f;
     [Tooltip("吹き飛び中に切るコライダー。三條さんの敵でも吹き飛び中は主人公に当たらない前提なので、同じ形にしておく")]
     [SerializeField] Collider bodyCollider;
+    // 大銘「返し」で、飛んでいる敵にもう一度当たるかを試すため。三條さんの敵が吹き飛び中に判定へ残るかは相談中
+    [Tooltip("吹き飛び中もコライダーを残す。オンにすると返しで再ヒットするが、触れた主人公は被弾する")]
+    [SerializeField] bool keepColliderWhileFlying;
 
     Vector3 velocity;
     Vector3 homePosition;
@@ -55,7 +58,7 @@ public sealed class PlayerTestEnemy : MonoBehaviour, ILaunchable
         velocity = launchVelocity;
         velocity.y = 0f;
         isFlying = true;
-        if (bodyCollider != null) bodyCollider.enabled = false;
+        if (bodyCollider != null && !keepColliderWhileFlying) bodyCollider.enabled = false;
         Debug.Log($"[PlayerTestEnemy] {name} Launch id={slashId} speed={velocity.magnitude:F2}", this);
     }
 

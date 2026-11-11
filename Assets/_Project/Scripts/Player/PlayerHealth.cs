@@ -20,6 +20,8 @@ public sealed class PlayerHealth : MonoBehaviour
     readonly Collider[] overlapBuffer = new Collider[OVERLAP_BUFFER_SIZE];
     CharacterController characterController;
     float invincibleRemaining;
+    // 被弾で残りが 0 になった(本当の終わり)。銘で上限が下がっただけのときと見分けるため
+    bool isDefeated;
 
     /// <summary>被弾した回数</summary>
     public int DamageTaken { get; private set; }
@@ -30,7 +32,8 @@ public sealed class PlayerHealth : MonoBehaviour
     /// <summary>被弾後の無敵の最中か。点滅などの見た目で使う</summary>
     public bool IsDamageInvincible => invincibleRemaining > 0f;
 
-    int MaxDamage => tuning.MaxDamageCount + GameContext.MeiStats.MaxDamageOffset;
+    // 銘で上限が下がっても 1 未満にはしない
+    int MaxDamage => Mathf.Max(1, tuning.MaxDamageCount + GameContext.MeiStats.MaxDamageOffset);
 
     void Awake()
     {
@@ -42,14 +45,25 @@ public sealed class PlayerHealth : MonoBehaviour
     {
         if (invincibleRemaining > 0f) invincibleRemaining -= Time.deltaTime;
 
+        KeepOneAfterMeiChange();
+
         if (!CanTakeDamage()) return;
         if (!IsTouchingEnemy()) return;
 
         DamageTaken++;
+        if (Remaining <= 0) isDefeated = true;
         invincibleRemaining = tuning.DamageInvincibleTime;
 
         GameEvents.RaisePlayerDamaged(Remaining);
         Feedback.PlaySe(SeId.PlayerDamaged, transform.position);
+    }
+
+    // 捨て身などで上限が下がり、被弾していないのに残りが 0 になったら、最低1回は残す。
+    // 銘を選んだだけで負けにしないため(仕様にない所。朝会で共有)。被弾の演出は出さないので PlayerDamaged は流さない
+    void KeepOneAfterMeiChange()
+    {
+        if (isDefeated) return;
+        if (DamageTaken >= MaxDamage) DamageTaken = MaxDamage - 1;
     }
 
     bool CanTakeDamage()

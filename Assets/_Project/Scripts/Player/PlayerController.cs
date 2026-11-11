@@ -27,6 +27,8 @@ public sealed class PlayerController : MonoBehaviour
 
     // 0 で割らないための下限
     const float MIN_SPEED_MULTIPLIER = 0.01f;
+    // これより短い線は向きが決まらないので、返しをしない(SlashResolver の判定と同じ値)
+    const float MIN_RETURN_LINE_LENGTH = 0.01f;
     const float MIN_MOVE_INPUT = 0.0001f;
     // カメラが真下を向いていて右が決まらないときの判定
     const float MIN_AXIS_LENGTH = 0.0001f;
@@ -60,18 +62,27 @@ public sealed class PlayerController : MonoBehaviour
     Vector3 plantedPosition;
     float freeHandElapsed;
 
-    // 斬り抜け
+    // 斬り抜け。slashStart と slashEnd は離した瞬間に確定した線(刀の位置 → 離した地点)
     int nextSlashId = 1;
     int currentSlashId;
     Vector3 slashStart;
     Vector3 slashEnd;
+    // 今の斬り抜けの両端。返しのときは線を逆にたどるので slashStart、slashEnd と入れ替わる
+    Vector3 passStart;
+    Vector3 passEnd;
+    Vector3 passDirection;
     float slashDuration;
     float slashElapsed;
     readonly List<SlashTarget> slashTargets = new List<SlashTarget>();
     int nextTargetIndex;
+    // passHitCount は今の斬り抜けだけ(ヒットストップ用)、slashHitCount は返しを含めた一振りの合計
+    int passHitCount;
     int slashHitCount;
 
     public State CurrentState { get; private set; }
+
+    /// <summary>大銘「返し」の2回目の斬り抜け中か。見た目で斬り抜けのアニメを流し直すため</summary>
+    public bool IsReturnSlashing { get; private set; }
 
     /// <summary>斬り抜け中は無敵(PlayerHealth が読む)</summary>
     public bool IsSlashInvincible => CurrentState == State.Slashing;
@@ -123,6 +134,9 @@ public sealed class PlayerController : MonoBehaviour
         GameContext.IsSwordPlanted = false;
         GameContext.SwordPosition = transform.position;
         GameContext.AutoReturnRemaining = 0f;
+        GameContext.AutoReturnLimit = 0f;
+        // 無効にしていた間の群がり数は古いので捨てる。次の SwarmCountChanged で正しい数になる
+        swarmCount = 0;
 
         GameEvents.SwarmCountChanged += OnSwarmCountChanged;
         GameEvents.GameOver += OnGameOver;
@@ -134,7 +148,7 @@ public sealed class PlayerController : MonoBehaviour
         GameEvents.GameOver -= OnGameOver;
 
         if (GameContext.PlayerTransform == transform) GameContext.PlayerTransform = null;
-        GameContext.AutoReturnRemaining = 0f;
+        ClearAutoReturn();
     }
 
     void Update()
@@ -175,9 +189,12 @@ public sealed class PlayerController : MonoBehaviour
 
             case State.Slashing:
                 UpdateSlash(dt);
+                // 刀は手に戻っているので、光は主人公とともに動く
+                GameContext.SwordPosition = transform.position;
                 break;
 
             case State.Recovery:
+                GameContext.SwordPosition = transform.position;
                 // 硬直の終わり際に押した分を覚えておき、押し続けていれば硬直明けに突き立てる
                 if (acceptInput && WasPlantPressed()) plantBuffered = true;
                 stateTimer -= dt;
@@ -266,50 +283,74 @@ public sealed class PlayerController : MonoBehaviour
         limit *= GameContext.MeiStats.AutoReturnTimeMultiplier;
 
         float remaining = Mathf.Max(0f, limit - freeHandElapsed);
+        GameContext.AutoReturnLimit = limit;
         GameContext.AutoReturnRemaining = remaining;
         return remaining;
+    }
+
+    // 刀が刺さっていない間は、残り時間も制限時間も 0 にしておく
+    static void ClearAutoReturn()
+    {
+        GameContext.AutoReturnRemaining = 0f;
+        GameContext.AutoReturnLimit = 0f;
     }
 
     // ---- 斬り戻し ----
 
     void BeginSlash()
     {
-        // 一振りごとに新しい番号。同じ斬り抜けで当たった敵には全員この番号を渡す
+        // 一振りごとに新しい番号。同じ斬り抜けで当たった敵には全員この番号を渡す。返しも同じ番号を使う
         currentSlashId = nextSlashId++;
 
         // 線は離した瞬間に確定する
         slashStart = plantedPosition;
         slashEnd = transform.position;
+        slashHitCount = 0;
+        IsReturnSlashing = false;
 
-        Vector3 direction = SlashResolver.Resolve(
-            slashStart, slashEnd, transform.forward, tuning, GameContext.MeiStats, enemyMask,
-            slashTargets, out int shieldBlockedCount);
-        // 盾に弾かれた音は SeId にまだ無い(増永さんに追加を頼む)。追加されたら 1 以上のときに鳴らす
-        LastShieldBlockedCount = shieldBlockedCount;
+        Vector3 direction = StartSlashPass(slashStart, slashEnd, transform.forward, 0f);
 
+        // 返しでは流さない。受け手(ScoreCounter など)が同じ一振りを2回始めないようにするため
         GameEvents.RaiseSlashStarted(new SlashStartedInfo(currentSlashId, slashStart, slashEnd));
-        Feedback.PlaySe(SeId.Slash, slashStart);
-        Feedback.SpawnVfx(VfxId.SlashTrail, slashStart, Quaternion.LookRotation(direction));
 
         // 刀の位置へ瞬間移動する。斬り抜けは敵や壁に引っかからないよう、CharacterController を切って直接動かす
         characterController.enabled = false;
         transform.SetPositionAndRotation(slashStart, Quaternion.LookRotation(direction));
         ReturnSwordToHand();
 
-        slashDuration = tuning.SlashDuration / Mathf.Max(MIN_SPEED_MULTIPLIER, GameContext.MeiStats.SlashSpeedMultiplier);
-        slashElapsed = 0f;
-        nextTargetIndex = 0;
-        slashHitCount = 0;
-
-        GameContext.AutoReturnRemaining = 0f;
+        ClearAutoReturn();
         CurrentState = State.Slashing;
+    }
+
+    // 1回分の斬り抜けを始める。返しでもう一度呼ぶ。戻り値は斬り抜ける向き
+    Vector3 StartSlashPass(Vector3 start, Vector3 end, Vector3 fallbackDirection, float delay)
+    {
+        passStart = start;
+        passEnd = end;
+
+        // 当たる敵はこの斬り抜けを始める瞬間に集める。返しでは、1回目の後に線へ入ってきた敵も当たる
+        passDirection = SlashResolver.Resolve(
+            start, end, fallbackDirection, tuning, GameContext.MeiStats, enemyMask,
+            slashTargets, out int shieldBlockedCount);
+        // 盾に弾かれた音は SeId にまだ無い(増永さんに追加を頼む)。追加されたら 1 以上のときに鳴らす
+        LastShieldBlockedCount = shieldBlockedCount;
+
+        Feedback.PlaySe(SeId.Slash, start);
+        Feedback.SpawnVfx(VfxId.SlashTrail, start, Quaternion.LookRotation(passDirection));
+
+        slashDuration = tuning.SlashDuration / Mathf.Max(MIN_SPEED_MULTIPLIER, GameContext.MeiStats.SlashSpeedMultiplier);
+        // 負から数え始めると、progress が 0 に張り付いたまま始点で待つ
+        slashElapsed = -delay;
+        nextTargetIndex = 0;
+        passHitCount = 0;
+        return passDirection;
     }
 
     void UpdateSlash(float dt)
     {
         slashElapsed += dt;
         float progress = Mathf.Clamp01(slashElapsed / slashDuration);
-        transform.position = Vector3.Lerp(slashStart, slashEnd, progress);
+        transform.position = Vector3.Lerp(passStart, passEnd, progress);
 
         // 通り過ぎた敵から順に吹き飛ばす。斬り抜けに合わせて群れが飛んでいくように見せるため
         while (nextTargetIndex < slashTargets.Count && slashTargets[nextTargetIndex].Progress <= progress)
@@ -318,7 +359,7 @@ public sealed class PlayerController : MonoBehaviour
             nextTargetIndex++;
         }
 
-        if (progress >= 1f) FinishSlash();
+        if (progress >= 1f) FinishSlashPass();
     }
 
     void ApplyHit(SlashTarget target)
@@ -326,15 +367,16 @@ public sealed class PlayerController : MonoBehaviour
         // 斬り抜けの間に消えた敵(先に落ちたなど)は飛ばさない
         if (target.Enemy == null || (target.Enemy is Object unityObject && unityObject == null)) return;
 
-        if (slashHitCount == 0)
+        if (passHitCount == 0)
         {
-            // ヒットストップは最初に当たった瞬間に1回だけ。長さはこの一振りで当てる数で決める
+            // ヒットストップは斬り抜けごとに最初に当たった瞬間に1回だけ。長さはその斬り抜けで当てる数で決める
             float hitStop = Mathf.Min(
                 tuning.HitStopBase + tuning.HitStopPerEnemy * slashTargets.Count,
                 tuning.HitStopMax);
             TimeController.HitStop(hitStop);
         }
 
+        passHitCount++;
         slashHitCount++;
         Vector3 position = target.Enemy.Position;
         target.Enemy.Launch(target.Velocity, currentSlashId);
@@ -343,15 +385,42 @@ public sealed class PlayerController : MonoBehaviour
         Feedback.SpawnVfx(VfxId.Hit, position, Quaternion.identity);
     }
 
-    void FinishSlash()
+    void FinishSlashPass()
     {
-        transform.position = slashEnd;
-        characterController.enabled = true;
+        transform.position = passEnd;
         slashTargets.Clear();
 
+        if (ShouldStartReturnSlash())
+        {
+            // 大銘「返し」: 同じ線を逆向きにもう一度斬り抜ける。無敵のまま Slashing を続け、硬直は返しの後だけにする
+            IsReturnSlashing = true;
+            Vector3 direction = StartSlashPass(slashEnd, slashStart, -passDirection, tuning.ReturnSlashDelay);
+            transform.rotation = Quaternion.LookRotation(direction);
+            return;
+        }
+
+        FinishSlash();
+    }
+
+    bool ShouldStartReturnSlash()
+    {
+        if (IsReturnSlashing) return false;
+        if (!GameContext.MeiStats.HasReturnSlash) return false;
+        Vector3 flat = slashEnd - slashStart;
+        flat.y = 0f;
+        return flat.magnitude >= MIN_RETURN_LINE_LENGTH;
+    }
+
+    void FinishSlash()
+    {
+        characterController.enabled = true;
+        IsReturnSlashing = false;
+
+        // 返しがあっても一振りは1つなので、ここで1回だけ流す。当てた数は返しを含めた合計
         GameEvents.RaiseSlashFinished(new SlashFinishedInfo(currentSlashId, slashHitCount));
 
-        // 当たれば連鎖、外せば隙。盾に正面から当たっただけなら slashHitCount は 0 なので空振り
+        // 当たれば連鎖、外せば隙。盾に正面から当たっただけなら slashHitCount は 0 なので空振り。
+        // 返しでは1回目と返しのどちらかで当たれば当たり
         bool hit = slashHitCount > 0;
         LastSlashHit = hit;
         int newChain = hit ? Chain + 1 : 0;
@@ -361,9 +430,7 @@ public sealed class PlayerController : MonoBehaviour
             GameEvents.RaiseChainChanged(Chain);
         }
 
-        Feedback.PlaySe(hit ? SeId.Sheathe : SeId.Whiff, slashEnd);
-
-        // 大銘「返し」(GameContext.MeiStats.HasReturnSlash)はここで分岐する予定。今回は範囲外
+        Feedback.PlaySe(hit ? SeId.Sheathe : SeId.Whiff, transform.position);
 
         stateTimer = hit ? tuning.HitRecovery : tuning.WhiffRecovery;
         CurrentState = State.Recovery;
@@ -392,13 +459,15 @@ public sealed class PlayerController : MonoBehaviour
 
     void OnGameOver()
     {
-        // 斬り抜けの途中なら終点に置いてから止める。CharacterController を切ったままにしないため
+        // 斬り抜けの途中なら今の斬り抜けの終点(返しなら刀の位置)に置いてから止める。CharacterController を切ったままにしないため
         if (CurrentState == State.Slashing)
         {
-            transform.position = slashEnd;
+            transform.position = passEnd;
             characterController.enabled = true;
+            slashTargets.Clear();
         }
-        GameContext.AutoReturnRemaining = 0f;
+        IsReturnSlashing = false;
+        ClearAutoReturn();
         CurrentState = State.Disabled;
     }
 
