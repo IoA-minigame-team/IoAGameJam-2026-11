@@ -74,12 +74,34 @@ public sealed class PlayerController : MonoBehaviour
     float slashDuration;
     float slashElapsed;
     readonly List<SlashTarget> slashTargets = new List<SlashTarget>();
+    // 演出などが硬直明けを待たせている間は Armed に戻さない。止めた本人が解除する
+    readonly HashSet<object> controlHolds = new HashSet<object>();
     int nextTargetIndex;
     // passHitCount は今の斬り抜けだけ(ヒットストップ用)、slashHitCount は返しを含めた一振りの合計
     int passHitCount;
     int slashHitCount;
 
     public State CurrentState { get; private set; }
+
+    /// <summary>
+    /// 一振りの1回目の斬り抜けを始めた瞬間(線と当たる敵が確定した直後)。返しでは流さない。
+    /// 引数は線の始点、終点、当たる敵の数(盾の正面だけの敵は含まない)。
+    /// 定点カメラなど主人公まわりの演出が使う。他担当は GameEvents.SlashStarted を使う
+    /// </summary>
+    public event System.Action<Vector3, Vector3, int> SlashBegan;
+
+    /// <summary>
+    /// 今の斬り抜けが線のどこまで進んだか(0〜1)。返しでは返しの斬り抜けの進み具合。斬り抜け中でなければ 0。
+    /// 返しの間合いの最中は 0 のまま
+    /// </summary>
+    public float SlashPassProgress =>
+        CurrentState == State.Slashing ? Mathf.Clamp01(slashElapsed / slashDuration) : 0f;
+
+    /// <summary>1回目の斬り抜けの最中で、この後に大銘「返し」が来るか。演出のカメラが1回目の撮り方を変えるため</summary>
+    public bool HasPendingReturnSlash => CurrentState == State.Slashing && ShouldStartReturnSlash();
+
+    /// <summary>硬直の時間は終わったが、HoldControl で待たされているか</summary>
+    public bool IsRecoveryFinished => CurrentState == State.Recovery && stateTimer <= 0f;
 
     /// <summary>大銘「返し」の2回目の斬り抜け中か。見た目で斬り抜けのアニメを流し直すため</summary>
     public bool IsReturnSlashing { get; private set; }
@@ -198,7 +220,7 @@ public sealed class PlayerController : MonoBehaviour
                 // 硬直の終わり際に押した分を覚えておき、押し続けていれば硬直明けに突き立てる
                 if (acceptInput && WasPlantPressed()) plantBuffered = true;
                 stateTimer -= dt;
-                if (stateTimer <= 0f) CurrentState = State.Armed;
+                if (stateTimer <= 0f && controlHolds.Count == 0) CurrentState = State.Armed;
                 break;
         }
     }
@@ -320,6 +342,9 @@ public sealed class PlayerController : MonoBehaviour
 
         ClearAutoReturn();
         CurrentState = State.Slashing;
+
+        // 状態を Slashing にしてから流す。受け手がすぐ HoldControl しても硬直明けに間に合うように
+        SlashBegan?.Invoke(slashStart, slashEnd, slashTargets.Count);
     }
 
     // 1回分の斬り抜けを始める。返しでもう一度呼ぶ。戻り値は斬り抜ける向き
@@ -448,6 +473,20 @@ public sealed class PlayerController : MonoBehaviour
         sword.SetParent(swordHolder, false);
         sword.localPosition = swordLocalPosition;
         sword.localRotation = swordLocalRotation;
+    }
+
+    // ---- 操作の保留 ----
+
+    /// <summary>硬直が明けても Armed に戻さないようにする。owner には呼んだ本人を渡し、ReleaseControl で解除する</summary>
+    public void HoldControl(object owner)
+    {
+        if (owner != null) controlHolds.Add(owner);
+    }
+
+    /// <summary>HoldControl で止めた本人が解除する</summary>
+    public void ReleaseControl(object owner)
+    {
+        if (owner != null) controlHolds.Remove(owner);
     }
 
     // ---- 入力 ----
