@@ -1,14 +1,21 @@
 using UnityEngine;
 
-/// <summary>ウェーブの予定・生存数・待ち時間を所有し、開始と完了を共有GameEventsで通知する。</summary>
+/// <summary>
+/// 「いつ、何体出すか」と波番号の進行だけを担当する。
+/// データはEnemyWavePlan、実際の配置と生存数はEnemySpawnerに任せる。
+/// 他担当への開始・完了通知はGameEventsを使う。画面や銘の選択処理を直接呼ばない。
+/// </summary>
 public sealed class WaveController : MonoBehaviour
 {
+    // Ready→Spawning→WaitingForEnemies→Intermission→次の波。最後だけCompletedへ進む。
+    // GameOverは被弾による終了、Faultedは出現データや配置の問題で進行できない状態。
     public enum WaveState { Ready, Spawning, WaitingForEnemies, Intermission, Completed, GameOver, Faulted }
     [SerializeField] EnemyWavePlan plan;
     [SerializeField] EnemySpawner spawner;
     [SerializeField] GameOverController gameOver;
     [SerializeField] bool startAutomatically = true;
     [SerializeField] bool autoAdvance = true;
+    // 添字は「現在の波の出現グループ」。remaining=未出現数、due=次に出す時刻。
     int[] remaining;
     float[] due, blockedSince;
     float elapsed, delay;
@@ -18,6 +25,7 @@ public sealed class WaveController : MonoBehaviour
     public int CurrentWaveNumber { get; private set; }
     public int TotalWaves => plan != null && plan.Waves != null ? plan.Waves.Length : 0;
     public int SpawnedThisWave { get; private set; }
+    /// <summary>まだ出していない数。UIの残り総数は、これにSpawner.AliveCountを足す。</summary>
     public int PendingCount { get; private set; }
     public string LastError { get; private set; }
     public EnemySpawner Spawner => spawner;
@@ -78,6 +86,7 @@ public sealed class WaveController : MonoBehaviour
             return;
         }
         if (State != WaveState.Spawning) return;
+        // 時刻は停止中には進めない。WaveStartedを受けたUIが開始演出でPauseしても先に出現しない。
         elapsed += dt;
         var batches = plan.Waves[CurrentWaveNumber - 1].Batches;
         int budget = plan.MaxSpawnsPerFrame;
@@ -87,6 +96,7 @@ public sealed class WaveController : MonoBehaviour
             {
                 if (!spawner.TrySpawn(batches[i].Prefab, batches[i].Areas, out _))
                 {
+                    // 塞がれた出現を「出した」と数えない。再試行し、長く失敗した場合は原因付きで止める。
                     if (blockedSince[i] < 0) blockedSince[i] = elapsed;
                     if (elapsed - blockedSince[i] >= plan.BlockedTimeout) { Fault(spawner.LastFailure);return; }
                     due[i] = elapsed + plan.RetryInterval;break;
@@ -111,6 +121,7 @@ public sealed class WaveController : MonoBehaviour
     }
     void BeginWave(int number)
     {
+        // 予定数と現在番号を先に確定してから通知する。購読先のUIが最新の残数を読める順序にする。
         CurrentWaveNumber = number;SpawnedThisWave = PendingCount = 0;elapsed = 0;
         var batches = plan.Waves[number - 1].Batches;
         remaining = new int[batches.Length];due = new float[batches.Length];blockedSince = new float[batches.Length];

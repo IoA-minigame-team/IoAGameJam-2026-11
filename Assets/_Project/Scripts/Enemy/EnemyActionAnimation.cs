@@ -1,6 +1,9 @@
 using UnityEngine;
 
-/// <summary>敵の見た目だけを担当する。移動、盾の成立、攻撃ダメージはEnemy側が所有する。</summary>
+/// <summary>
+/// 敵の見た目だけを担当する。Root移動と盾判定はEnemy、攻撃の進行はEnemyAutoAttackに任せる。
+/// 接触ダメージは計算せず、復帰の完了だけを敵内部のイベントで知らせる。
+/// </summary>
 [DisallowMultipleComponent]
 public sealed class EnemyActionAnimation : MonoBehaviour
 {
@@ -10,6 +13,7 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     static readonly int SPAWN = Animator.StringToHash("Spawn");
     static readonly int DEFENDING = Animator.StringToHash("Defending");
     static readonly int GLOW_RATIO = Shader.PropertyToID("_GlowRatio");
+    // AnimatorのIdle/Attackと、自前で加える吹き飛び姿勢は別の状態として管理する。
     enum ReactionMode { None, Launched, Teeter, Falling, Recovering }
 
     [SerializeField] Animator animator;
@@ -80,6 +84,9 @@ public sealed class EnemyActionAnimation : MonoBehaviour
         EnemyMotionEvents.Reset -= OnReset;
         EnemyMotionEvents.GuardChanged -= OnGuardChanged;
         EnemyMotionEvents.AttackStarted -= OnAttackStarted;
+        // 表示を外したりプールへ戻した場合、完了通知を待ったEnemyを置き去りにしない。
+        SetReaction(ReactionMode.None);
+        RestorePivot();
     }
 
     // 受信した対象が自分と一致したときだけ再生する。別の敵の通知では動かない。
@@ -111,7 +118,14 @@ public sealed class EnemyActionAnimation : MonoBehaviour
             if (head != null) head.localRotation = frozenHead;
             return;
         }
-        if (reaction == ReactionMode.None || reactionTuning == null || reactionPivot == null) return;
+        if (reaction == ReactionMode.None) return;
+        if (reactionTuning == null || reactionPivot == null)
+        {
+            // 表示用の参照が欠けても、復帰待ちだけが永続する状態にはしない。
+            RestorePivot();
+            SetReaction(ReactionMode.None);
+            return;
+        }
         float dt = TimeController.IsPaused || TimeController.IsHitStopping ? 0f : Time.deltaTime;
         reactionTime += dt;
         float blend = 1f - Mathf.Exp(-reactionTuning.ReactionResponse * dt);
@@ -121,7 +135,9 @@ public sealed class EnemyActionAnimation : MonoBehaviour
             reactionPivot.localRotation = Quaternion.Slerp(reactionPivot.localRotation, pivotRotation, blend);
             if (Vector3.Distance(reactionPivot.localPosition, pivotPosition) < .001f && Quaternion.Angle(reactionPivot.localRotation, pivotRotation) < .1f)
             {
-                RestorePivot(); reaction = ReactionMode.None;
+                // 見た目を確定してから待機を解除する。次フレームの攻撃には通常姿勢から入る。
+                RestorePivot();
+                SetReaction(ReactionMode.None);
             }
             return;
         }
@@ -178,7 +194,8 @@ public sealed class EnemyActionAnimation : MonoBehaviour
         IsDefending = false;
         animator.SetBool(DEFENDING, false);
         animator.Play(IDLE, 0, 0f);
-        reaction = ReactionMode.Launched;
+        if (reactionTuning == null || reactionPivot == null) return;
+        SetReaction(ReactionMode.Launched);
         reactionTime = 0;
         SetLaunchVelocity(velocity);
     }
@@ -191,17 +208,23 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     {
         if (!CanPlay()) return;
         if (outward.sqrMagnitude > .000001f) launchDirection = outward.normalized;
-        reaction = ReactionMode.Teeter; reactionTime = 0;
+        SetReaction(ReactionMode.Teeter); reactionTime = 0;
     }
     public void PlayFall()
     {
         if (!CanPlay()) return;
-        reaction = ReactionMode.Falling; reactionTime = 0;
+        SetReaction(ReactionMode.Falling); reactionTime = 0;
     }
     public void EndLaunch()
     {
-        if (!CanPlay()) return;
-        reaction = ReactionMode.Recovering;
+        if (!CanPlay() || reactionTuning == null || reactionPivot == null)
+        {
+            RestorePivot();
+            SetReaction(ReactionMode.None);
+            return;
+        }
+        // 移動の停止通知から、姿勢を戻す時間へ移る。この時点ではまだ追跡・攻撃を再開させない。
+        SetReaction(ReactionMode.Recovering);
         animator.CrossFadeInFixedTime(IDLE, transitionDuration);
     }
     public void SetGlowRatio(float ratio)
@@ -218,7 +241,7 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     public void ResetPresentation()
     {
         IsStoppedByGameOver = false;
-        reaction = ReactionMode.None;
+        SetReaction(ReactionMode.None);
         requestedGuard = false;
         RestorePivot();
         if (animator == null) return;
@@ -228,6 +251,13 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     void RestorePivot()
     {
         if (reactionPivot != null) { reactionPivot.localPosition = pivotPosition; reactionPivot.localRotation = pivotRotation; }
+    }
+    void SetReaction(ReactionMode next)
+    {
+        bool wasBusy = IsReacting;
+        reaction = next;
+        // Launched→Recoveringの間は待機を維持し、Noneとの境目だけを通知する。
+        if (wasBusy != IsReacting) EnemyMotionEvents.RaisePresentationBusyChanged(launchable, IsReacting);
     }
     bool CanPlay() => !IsStoppedByGameOver && animator != null && animator.isActiveAndEnabled;
     void OnGameOver()

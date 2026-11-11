@@ -4,12 +4,14 @@ using UnityEngine;
 /// ILaunchableの受け口と吹き飛び軌道を所有する。追跡AIや攻撃判定はここへ混ぜない。
 /// 見た目へはイベントだけを送り、具体的なアニメーションクラスを参照しない。
 /// </summary>
-[DisallowMultipleComponent]
+[DisallowMultipleComponent, RequireComponent(typeof(CapsuleCollider))]
 public sealed class Enemy : MonoBehaviour, ILaunchable
 {
+    // Idleは「軌道が止まった」状態。見た目が復帰中なら、まだCanPursueはfalseになる。
     public enum MotionState { Idle, Flying, Teetering, Falling, Fallen }
     [SerializeField] EnemyTuning tuning;
-    [SerializeField] Collider bodyCollider;
+    [Tooltip("追跡・吹き飛びの障害物判定にも使う当たり判定。半径の値をコード側へ複製しない")]
+    [SerializeField] CapsuleCollider bodyCollider;
     [Tooltip("地面の非Trigger Colliderがあるレイヤー。初期値はDefault")]
     [SerializeField] LayerMask groundMask = 1;
     [Tooltip("柵などの障害物。初期値はIgnore Raycastレイヤー。地面の判定とは分ける")]
@@ -21,6 +23,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
     float fallStartHeight;
     bool stoppedByGameOver;
     bool colliderWasEnabled;
+    bool presentationBusy;
     int slashId = -1;
 
     public Transform Transform => transform;
@@ -33,7 +36,8 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
     public MotionState State { get; private set; }
     public bool IsStoppedByGameOver => stoppedByGameOver;
     public EnemyTuning Tuning => tuning;
-    public bool CanPursue => isActiveAndEnabled && tuning != null && State == MotionState.Idle && !stoppedByGameOver
+    /// <summary>追跡と攻撃に共通の再開条件。移動の停止だけでなく、見た目の復帰完了も待つ。</summary>
+    public bool CanPursue => isActiveAndEnabled && tuning != null && State == MotionState.Idle && !stoppedByGameOver && !presentationBusy
         && !TimeController.IsPaused && !TimeController.IsHitStopping;
 
     /// <summary>追跡側から受け取る地上移動。Rootを動かす責任はEnemyへ集約する。</summary>
@@ -60,23 +64,59 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
         direction.y = 0;
         if (direction.sqrMagnitude > .000001f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), degrees);
     }
-    bool ObstacleDistance(Vector3 direction,float distance,out float available)
+    /// <summary>実Colliderと同じ形を移動先へ掃引し、接触まで進める距離を返す。</summary>
+    bool ObstacleDistance(Vector3 direction, float distance, out float available)
     {
-        const float BODY_RADIUS = .48f;
-        available=distance;
-        if(!Physics.Raycast(transform.position+Vector3.up,direction,out var hit,distance+BODY_RADIUS,movementObstacleMask,QueryTriggerInteraction.Ignore))return false;
-        available=Mathf.Max(0,hit.distance-BODY_RADIUS);return true;
+        available = distance;
+        if (bodyCollider == null) return false;
+        GetWorldCapsule(out var bottom, out var top, out float radius);
+        if (!Physics.CapsuleCast(bottom, top, radius, direction, out var hit, distance, movementObstacleMask, QueryTriggerInteraction.Ignore)) return false;
+        // CapsuleCastは形全体を掃引済みなので、半径をもう一度引かない。
+        available = Mathf.Max(0, hit.distance);
+        return true;
+    }
+
+    void GetWorldCapsule(out Vector3 bottom, out Vector3 top, out float radius)
+    {
+        // Collider.boundsはCollider無効中に空になる。吹き飛び中も使えるよう定義値から形を作る。
+        var bodyTransform = bodyCollider.transform;
+        Vector3 scale = bodyTransform.lossyScale;
+        scale = new Vector3(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+        int axis = bodyCollider.direction;
+        Vector3 localAxis = axis == 0 ? Vector3.right : axis == 1 ? Vector3.up : Vector3.forward;
+        float axisScale = axis == 0 ? scale.x : axis == 1 ? scale.y : scale.z;
+        float radialScale = axis == 0 ? Mathf.Max(scale.y, scale.z) : axis == 1 ? Mathf.Max(scale.x, scale.z) : Mathf.Max(scale.x, scale.y);
+        radius = bodyCollider.radius * radialScale;
+        float halfSegment = Mathf.Max(0, bodyCollider.height * axisScale * .5f - radius);
+        Vector3 center = bodyTransform.TransformPoint(bodyCollider.center);
+        Vector3 offset = bodyTransform.TransformDirection(localAxis).normalized * halfSegment;
+        bottom = center - offset;
+        top = center + offset;
     }
 
     void Awake()
     {
-        if (bodyCollider == null) bodyCollider = GetComponent<Collider>();
+        if (bodyCollider == null) bodyCollider = GetComponent<CapsuleCollider>();
         colliderWasEnabled = bodyCollider != null && bodyCollider.enabled;
         if (tuning == null) Debug.LogError("EnemyTuningを設定してください。吹き飛び処理を開始できません。", this);
     }
 
-    void OnEnable() => GameEvents.GameOver += OnGameOver;
-    void OnDisable() => GameEvents.GameOver -= OnGameOver;
+    void OnEnable()
+    {
+        GameEvents.GameOver += OnGameOver;
+        EnemyMotionEvents.PresentationBusyChanged += OnPresentationBusyChanged;
+    }
+    void OnDisable()
+    {
+        GameEvents.GameOver -= OnGameOver;
+        EnemyMotionEvents.PresentationBusyChanged -= OnPresentationBusyChanged;
+        presentationBusy = false;
+    }
+    void OnPresentationBusyChanged(ILaunchable source, bool busy)
+    {
+        // Animatorや表示クラスを直接参照せず、自分の見た目から届いた完了通知だけを使う。
+        if (ReferenceEquals(source, this)) presentationBusy = busy;
+    }
 
     public bool IsShieldFacing(Vector3 slashDir)
     {
@@ -167,6 +207,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
 
     void StopOnGround()
     {
+        // 軌道が止まった後は、縁なら踏みとどまり、それ以外なら見た目の復帰へ進む。
         velocity = Vector3.zero;
         if (bodyCollider != null) bodyCollider.enabled = colliderWasEnabled;
         if (!HasGround(transform.position + lastDirection * tuning.EdgeProbeDistance))
@@ -181,6 +222,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
 
     void Recover()
     {
+        // ここは移動の終了。Recoveredを受けた見た目が戻り切るまでCanPursueは開かない。
         State = MotionState.Idle;
         velocity = Vector3.zero;
         if (bodyCollider != null) bodyCollider.enabled = colliderWasEnabled;
@@ -189,6 +231,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
 
     void BeginFall()
     {
+        // 地上の摩擦とは切り離し、足場を失った高さを基準に落下を計算する。
         State = MotionState.Falling;
         fallStartHeight = transform.position.y;
         if (bodyCollider != null) bodyCollider.enabled = false;
@@ -213,6 +256,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
     public void ResetState()
     {
         stoppedByGameOver = false;
+        presentationBusy = false;
         State = MotionState.Idle;
         velocity = Vector3.zero;
         glow = 0f;

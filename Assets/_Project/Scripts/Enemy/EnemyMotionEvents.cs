@@ -12,7 +12,10 @@ public static class EnemyMotionEvents
     public static event Action<ILaunchable, Vector3> Launched;
     public static event Action<ILaunchable, Vector3> MotionUpdated;
     public static event Action<ILaunchable> Falling;
+    /// <summary>地上移動が停止した通知。見た目の復帰はまだ終わっていない場合がある。</summary>
     public static event Action<ILaunchable> Recovered;
+    /// <summary>見た目が吹き飛び・復帰中ならtrue。falseになるまでEnemyは追跡・攻撃を再開しない。</summary>
+    public static event Action<ILaunchable, bool> PresentationBusyChanged;
     public static event Action<ILaunchable> Reset;
     public static event Action<ILaunchable, bool> GuardChanged;
     public static event Action<ILaunchable, bool> SwarmMembershipChanged;
@@ -23,6 +26,7 @@ public static class EnemyMotionEvents
     public static void RaiseMotionUpdated(ILaunchable enemy, Vector3 velocity) => Invoke(MotionUpdated, enemy, velocity);
     public static void RaiseFalling(ILaunchable enemy) => Invoke(Falling, enemy);
     public static void RaiseRecovered(ILaunchable enemy) => Invoke(Recovered, enemy);
+    public static void RaisePresentationBusyChanged(ILaunchable enemy, bool busy) => InvokeBool(PresentationBusyChanged, enemy, busy);
     public static void RaiseReset(ILaunchable enemy) => Invoke(Reset, enemy);
     public static void RaiseGuardChanged(ILaunchable enemy, bool guarding) => InvokeBool(GuardChanged, enemy, guarding);
     public static void RaiseSwarmMembershipChanged(ILaunchable enemy, bool swarming) => InvokeBool(SwarmMembershipChanged, enemy, swarming);
@@ -35,6 +39,7 @@ public static class EnemyMotionEvents
         Launched = null; MotionUpdated = null; Falling = null; Recovered = null; Reset = null;
         GuardChanged = null;SwarmMembershipChanged = null;
         AttackStarted = null;AttackEnded = null;
+        PresentationBusyChanged = null;
     }
     static void Invoke(Action<ILaunchable> handler, ILaunchable enemy)
     {

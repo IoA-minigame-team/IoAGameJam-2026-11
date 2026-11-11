@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// 人狼の見た目を使うPrefabも、ゲーム上の役割はLampEater（灯喰らい）として扱う。
 public enum EnemyBehaviourRole { Shadow, LampEater, ShieldBearer }
 
 /// <summary>追跡先の判断だけを所有する。共有状態は読むだけ。Root移動はEnemy、姿勢はイベントで依頼する。</summary>
@@ -12,6 +13,7 @@ public sealed class EnemyPursuit : MonoBehaviour
     Vector3 swordPosition;
     float spawnHold;
     bool attackBusy;
+    /// <summary>出現待ちが終わり、復帰済みで、主人公を選んでいるときだけ攻撃開始を許可する。</summary>
     public bool CanInitiateAttack => spawnHold <= 0 && !attackBusy && enemy != null && enemy.CanPursue && Target == PursuitTarget.Player;
     public PursuitTarget Target { get; private set; }
     public Vector3 TargetPosition { get; private set; }
@@ -22,18 +24,24 @@ public sealed class EnemyPursuit : MonoBehaviour
     void Awake() => enemy = GetComponent<Enemy>();
     void OnEnable()
     {
-        GameEvents.SwordPlanted += OnSwordPlanted;GameEvents.SlashStarted += OnSlashStarted;
-        GameEvents.GameOver += OnGameOver;EnemyMotionEvents.Reset += OnReset;
+        GameEvents.SwordPlanted += OnSwordPlanted;
+        GameEvents.SlashStarted += OnSlashStarted;
+        GameEvents.GameOver += OnGameOver;
+        EnemyMotionEvents.Reset += OnReset;
         EnemyMotionEvents.Launched += OnLaunched;
-        EnemyMotionEvents.AttackStarted += OnAttackStarted;EnemyMotionEvents.AttackEnded += OnAttackEnded;
+        EnemyMotionEvents.AttackStarted += OnAttackStarted;
+        EnemyMotionEvents.AttackEnded += OnAttackEnded;
         attackBusy = false;RefreshContext();spawnHold = enemy != null && enemy.Tuning != null ? enemy.Tuning.SpawnHoldDuration : 0;
     }
     void OnDisable()
     {
-        GameEvents.SwordPlanted -= OnSwordPlanted;GameEvents.SlashStarted -= OnSlashStarted;
-        GameEvents.GameOver -= OnGameOver;EnemyMotionEvents.Reset -= OnReset;
+        GameEvents.SwordPlanted -= OnSwordPlanted;
+        GameEvents.SlashStarted -= OnSlashStarted;
+        GameEvents.GameOver -= OnGameOver;
+        EnemyMotionEvents.Reset -= OnReset;
         EnemyMotionEvents.Launched -= OnLaunched;
-        EnemyMotionEvents.AttackStarted -= OnAttackStarted;EnemyMotionEvents.AttackEnded -= OnAttackEnded;
+        EnemyMotionEvents.AttackStarted -= OnAttackStarted;
+        EnemyMotionEvents.AttackEnded -= OnAttackEnded;
         attackBusy = false;SetSwarming(false);SetGuard(false);Target = PursuitTarget.None;
     }
     void RefreshContext()
@@ -63,6 +71,7 @@ public sealed class EnemyPursuit : MonoBehaviour
 
     void SelectTarget()
     {
+        // 毎回最新の銘倍率を読む。刀のイベント後に倍率が変わっても、次の更新で反映する。
         Target = PursuitTarget.None;
         if (enemy == null || enemy.Tuning == null || enemy.IsStoppedByGameOver) return;
         float radius = enemy.Tuning.LureRadius * Mathf.Max(0, GameContext.MeiStats.LureRadiusMultiplier);
@@ -79,6 +88,7 @@ public sealed class EnemyPursuit : MonoBehaviour
         if (TimeController.IsPaused || TimeController.IsHitStopping) return;
         SelectTarget();IsBlocked = false;
         spawnHold = Mathf.Max(0, spawnHold - Time.deltaTime);
+        // CanPursueには見た目の復帰待ちも含まれる。姿勢が傾いたまま追跡へ戻さない。
         if (!enemy.CanPursue || spawnHold > 0 || Target == PursuitTarget.None)
         {
             SetSwarming(false);SetGuard(false);return;
@@ -88,6 +98,7 @@ public sealed class EnemyPursuit : MonoBehaviour
         float distance = direction.magnitude;
         enemy.FaceOnGround(direction, tuning.TurnSpeed * Time.deltaTime);
         SetGuard(Role == EnemyBehaviourRole.ShieldBearer);
+        // 攻撃中のRoot移動はEnemyAutoAttackが担当する。追跡移動を重ねない。
         if (attackBusy) { SetSwarming(false);return; }
         float stop = Target == PursuitTarget.Sword ? tuning.SwordStopDistance : tuning.PlayerStopDistance;
         float step = Mathf.Min(tuning.MoveSpeed * Time.deltaTime, Mathf.Max(0, distance - stop));

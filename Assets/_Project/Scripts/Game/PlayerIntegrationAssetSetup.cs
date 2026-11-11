@@ -15,7 +15,7 @@ public static class PlayerIntegrationAssetSetup
     const string ROOT="Assets/_Project/";
     public const string TEST_SCENE=ROOT+"Scenes/Dev/Sanjo/PlayerIntegrationTest.unity";
     public const string ROUTE_SCENE=ROOT+"Scenes/Dev/Sanjo/PlayerIntegrationRouteTest.unity";
-    public const string PLAYER=ROOT+"Prefabs/PlayerIntegrationActor.prefab";
+    public const string PLAYER=ROOT+"Prefabs/Player.prefab";
     public const string ISLAND=ROOT+"Prefabs/GameJamIsland.prefab";
     public const string ROUTE_PLAN=ROOT+"Data/Tuning/PlayerIntegrationRoutePlan.asset";
     [MenuItem("Hitofuri/Sanjo/Open Real Player Test")]
@@ -171,3 +171,4 @@ public static class PlayerIntegrationAssetSetup
     }
 }
 #endif
+
