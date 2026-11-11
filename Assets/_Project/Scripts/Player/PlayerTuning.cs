@@ -69,8 +69,40 @@ public sealed class PlayerTuning : ScriptableObject
     [Tooltip("見下ろしへ戻るブレンドの秒数")]
     [SerializeField, Min(0f)] float cinematicBlendBack = 0.3f;
     // 演出中のスロー倍率と演出後の無敵は「テストで決める」なので仮の値
+    [Tooltip("演出中の時間の倍率。離した瞬間から見下ろしへ戻り始めるまで")]
     [SerializeField, Range(0f, 1f)] float cinematicSlowScale = 0.3f;
+    [Tooltip("見下ろしへ戻り終えてからの無敵(秒)。演出の始まりから戻り終えるまでも無敵")]
     [SerializeField, Min(0f)] float postCinematicInvincible = 0.5f;
+    // 定点カメラの置き場所は仕様で「任せる」なので仮の値。終点と斬り抜ける向きだけから決め、ステージの形には頼らない
+    // 寄り具合を保ったまま回り込みだけ変えられるよう、距離と角度で持つ
+    [Tooltip("終点の寄りのカメラの、終点からの水平の距離(m)")]
+    [SerializeField, Min(0f)] float cinematicCameraDistance = 3.1f;
+    [Tooltip("終点の寄りのカメラを置く向き(度)。0 で線の真横(画面の手前側)、90 で真正面(斬り抜ける向きの先)。負なら背中側へ回る")]
+    [SerializeField, Range(-90f, 90f)] float cinematicCameraAngle = 45f;
+    [Tooltip("定点カメラの高さ(終点からの高さ、m)")]
+    [SerializeField] float cinematicCameraHeight = 2.5f;
+    [Tooltip("定点カメラが見る位置。線の始点 0 から終点 1 のどこを見るか。駆け込みと止まる瞬間の両方を収める")]
+    [SerializeField, Range(0f, 1.5f)] float cinematicLookAtRatio = 0.85f;
+    [Tooltip("定点カメラが見る位置の高さ(線からの高さ、m)")]
+    [SerializeField] float cinematicLookHeight = 0f;
+    // 硬直 0.1 秒だけでは納刀が見えないので、演出のときだけ定点カメラのまま少し待つ
+    [Tooltip("硬直が明けてから見下ろしへ戻り始めるまで、定点カメラのまま待つ秒数(実時間)。この間も主人公は動けない")]
+    [SerializeField, Min(0f)] float cinematicSheatheHold = 0.4f;
+
+    [Header("斬り抜け演出の駆け込み(肩越しカメラ)")]
+    // 駆け込みは肩越しで追い、途中で終点の寄りへ切り替える。値は仕様で「任せる」なので仮の値
+    [Tooltip("1回目の斬り抜けが線のこの割合まで進んだら、肩越しから終点の寄りへ切り替える。0 なら肩越しを使わない")]
+    [SerializeField, Range(0f, 1f)] float cinematicRunInSwitchRatio = 0.5f;
+    [Tooltip("肩越しカメラを主人公の後ろへ離す距離(m)")]
+    [SerializeField] float cinematicShoulderBack = 2.5f;
+    [Tooltip("肩越しカメラを横へずらす距離(m)。定点カメラと同じ側(画面の手前)へずらす")]
+    [SerializeField] float cinematicShoulderSide = 1f;
+    [Tooltip("肩越しカメラの高さ(主人公の体の中心からの高さ、m)")]
+    [SerializeField] float cinematicShoulderHeight = 1.2f;
+    [Tooltip("肩越しカメラが見る位置を、主人公からどれだけ前に置くか(m)")]
+    [SerializeField] float cinematicShoulderLookAhead = 4f;
+    [Tooltip("肩越しカメラが見る位置の高さ(主人公の体の中心からの高さ、m)")]
+    [SerializeField] float cinematicShoulderLookHeight = 0f;
 
     [Header("見た目")]
     // 見た目の値は仕様にないので仮の値。手触りを見ながら決める
@@ -112,6 +144,18 @@ public sealed class PlayerTuning : ScriptableObject
     public float CinematicBlendBack => cinematicBlendBack;
     public float CinematicSlowScale => cinematicSlowScale;
     public float PostCinematicInvincible => postCinematicInvincible;
+    public float CinematicCameraDistance => cinematicCameraDistance;
+    public float CinematicCameraAngle => cinematicCameraAngle;
+    public float CinematicCameraHeight => cinematicCameraHeight;
+    public float CinematicLookAtRatio => cinematicLookAtRatio;
+    public float CinematicLookHeight => cinematicLookHeight;
+    public float CinematicSheatheHold => cinematicSheatheHold;
+    public float CinematicRunInSwitchRatio => cinematicRunInSwitchRatio;
+    public float CinematicShoulderBack => cinematicShoulderBack;
+    public float CinematicShoulderSide => cinematicShoulderSide;
+    public float CinematicShoulderHeight => cinematicShoulderHeight;
+    public float CinematicShoulderLookAhead => cinematicShoulderLookAhead;
+    public float CinematicShoulderLookHeight => cinematicShoulderLookHeight;
     public float AnimationCrossFade => animationCrossFade;
     public float SlashCrossFade => slashCrossFade;
     public float RunBlendSpeed => runBlendSpeed;

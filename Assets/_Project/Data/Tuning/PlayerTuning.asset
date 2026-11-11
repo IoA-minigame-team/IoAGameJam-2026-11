@@ -19,6 +19,7 @@ MonoBehaviour:
   slashDuration: 0.2
   hitRecovery: 0.1
   whiffRecovery: 0.6
+  returnSlashDelay: 0
   lineWidth: 1.2
   baseLaunchPower: 6
   lengthBonusPerMeter: 0.1
@@ -34,9 +35,23 @@ MonoBehaviour:
   hitStopMax: 0.25
   cinematicThreshold: 5
   cinematicBlendBack: 0.3
-  cinematicSlowScale: 0.3
+  cinematicSlowScale: 0.5
   postCinematicInvincible: 0.5
+  cinematicCameraDistance: 3
+  cinematicCameraAngle: 75
+  cinematicCameraHeight: -0.5
+  cinematicLookAtRatio: 1
+  cinematicLookHeight: -0.1
+  cinematicSheatheHold: 0.4
+  cinematicRunInSwitchRatio: 0.65
+  cinematicShoulderBack: 3
+  cinematicShoulderSide: 2.5
+  cinematicShoulderHeight: 2.5
+  cinematicShoulderLookAhead: 4
+  cinematicShoulderLookHeight: -0.8
   animationCrossFade: 0.08
   slashCrossFade: 0
   runBlendSpeed: 6.5
   damageBlinkInterval: 0.08
+  plantPoseHold: 0.2
+  slashPoseHold: 0.1
