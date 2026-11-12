@@ -1095,6 +1095,7 @@ MonoBehaviour:
   - {fileID: 1852716830}
   - {fileID: 1521434869}
   lift: {fileID: 601549404}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -2642,6 +2643,7 @@ MonoBehaviour:
   - {fileID: 754700052}
   - {fileID: 830284830}
   lift: {fileID: 1945380751}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -6943,6 +6945,7 @@ MonoBehaviour:
   detailText: {fileID: 0}
   pips: []
   lift: {fileID: 874233374}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -8570,6 +8573,7 @@ MonoBehaviour:
   - {fileID: 862393642}
   - {fileID: 1436958492}
   lift: {fileID: 1421184292}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}

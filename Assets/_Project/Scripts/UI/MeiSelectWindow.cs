@@ -104,13 +104,20 @@ public sealed class MeiSelectWindow : MonoBehaviour
         group.alpha = Mathf.Clamp01(openTime / 0.2f);
     }
 
+    void OnEnable()
+    {
+        // 開いたまま GameObject ごと無効化されたときは、OnDisable でパネルを閉じられないので、戻ってきたときに閉じる
+        if (!IsOpen && panel != null && panel.activeSelf) panel.SetActive(false);
+    }
+
     void OnDisable()
     {
-        // 開いたまま無効化されても、時間が止まり続けないようにする
-        if (IsOpen)
-        {
-            IsOpen = false;
-            TimeController.ReleasePause(this);
-        }
+        // 開いたまま無効化されても、時間が止まり続けたり、パネルだけ残ったりしないようにする
+        if (!IsOpen) return;
+        IsOpen = false;
+        // コンポーネントだけ無効化されたときはすぐ閉じる。GameObject ごと無効化中に子の SetActive を呼ぶと Unity がエラーを出すので、そのときは OnEnable に任せる
+        if (panel != null && gameObject.activeInHierarchy) panel.SetActive(false);
+        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+        TimeController.ReleasePause(this);
     }
 }

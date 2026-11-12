@@ -43,7 +43,7 @@ public static class MeiSceneBuilder
         GameObject canvasObject = GameObject.Find(GAME_CANVAS_NAME);
         Transform canvas = canvasObject != null ? canvasObject.transform : NewCanvas("C_MeiCanvas").transform;
 
-        MeiSelectWindow window = BuildMeiWindow(canvas);
+        MeiSelectWindow window = BuildMeiWindow(canvas, feedbackTuning);
         MeiManager mei = NewObject("C_Mei").AddComponent<MeiManager>();
         Wire(mei, "tuning", meiTuning);
         Wire(mei, "feedbackTuning", feedbackTuning);
@@ -116,7 +116,7 @@ public static class MeiSceneBuilder
 
     // ================= 選択画面 =================
 
-    static MeiSelectWindow BuildMeiWindow(Transform canvas)
+    static MeiSelectWindow BuildMeiWindow(Transform canvas, FeedbackTuning feedbackTuning)
     {
         RectTransform root = Rect("MeiSelectWindow", canvas);
         Stretch(root);
@@ -136,8 +136,8 @@ public static class MeiSceneBuilder
         TextMeshProUGUI sub = Text(panel, "Sub", "", 24, ASH, TextAlignmentOptions.TopLeft, new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(-580, 296), new Vector2(1100, 36));
 
         MeiCardView[] cards = new MeiCardView[3];
-        for (int i = 0; i < 3; i++) cards[i] = BuildCard(panel, "Card" + i, new Vector2(-400 + i * 400, -10), new Vector2(360, 520), true);
-        MeiCardView keep = BuildCard(panel, "KeepCard", new Vector2(0, -340), new Vector2(560, 74), false);
+        for (int i = 0; i < 3; i++) cards[i] = BuildCard(panel, "Card" + i, new Vector2(-400 + i * 400, -10), new Vector2(360, 520), true, feedbackTuning);
+        MeiCardView keep = BuildCard(panel, "KeepCard", new Vector2(0, -340), new Vector2(560, 74), false, feedbackTuning);
         Text(panel, "Hint", "左右キーかスティックで選ぶ ・ クリック、Enter、Aボタンで決める", 22, ASH, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -420), new Vector2(1000, 34));
 
         Wire(window, "panel", dim.gameObject);
@@ -152,7 +152,7 @@ public static class MeiSceneBuilder
         return window;
     }
 
-    static MeiCardView BuildCard(Transform parent, string name, Vector2 pos, Vector2 size, bool full)
+    static MeiCardView BuildCard(Transform parent, string name, Vector2 pos, Vector2 size, bool full, FeedbackTuning feedbackTuning)
     {
         RectTransform root = Place(Rect(name, parent), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, size);
         RectTransform lift = Rect("Lift", root);
@@ -174,6 +174,7 @@ public static class MeiSceneBuilder
         Wire(view, "button", button);
         Wire(view, "frame", frame);
         Wire(view, "lift", lift);
+        Wire(view, "tuning", feedbackTuning);
 
         if (!full)
         {

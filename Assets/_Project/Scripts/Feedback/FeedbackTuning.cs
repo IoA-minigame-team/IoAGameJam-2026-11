@@ -165,6 +165,12 @@ public sealed class FeedbackTuning : ScriptableObject
     [Tooltip("ゲームの終わりからリザルトへ移るまでの実時間(秒)")]
     [SerializeField, Min(0f)] float resultDelay = 1.4f;
 
+    [Header("銘の選択画面")]
+    [Tooltip("選ばれているカードを持ち上げる高さ(px)")]
+    [SerializeField, Min(0f)] float meiCardLiftHeight = 10f;
+    [Tooltip("カードが持ち上がる、下がる速さ(px/秒、実時間)")]
+    [SerializeField, Min(0.1f)] float meiCardLiftSpeed = 80f;
+
     [Header("シーン名(Build Settings に入れておく)")]
     [SerializeField] string titleSceneName = "TitleScene";
     [SerializeField] string gameSceneName = "GameScene";
@@ -183,6 +189,8 @@ public sealed class FeedbackTuning : ScriptableObject
     public float CalloutDuration => calloutDuration;
     public float BannerDuration => bannerDuration;
     public float ResultDelay => resultDelay;
+    public float MeiCardLiftHeight => meiCardLiftHeight;
+    public float MeiCardLiftSpeed => meiCardLiftSpeed;
     public Material BoltCoreMaterial => boltCoreMaterial;
     public Material BoltRimMaterial => boltRimMaterial;
     public Material RingMaterial => ringMaterial;
