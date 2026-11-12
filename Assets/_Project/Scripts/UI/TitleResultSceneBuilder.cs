@@ -31,14 +31,21 @@ public static class TitleResultSceneBuilder
     const string STAGE_PREFAB = "Assets/_Project/Prefabs/FloatingMeadowStage.prefab";
     const string POST_PREFAB = "Assets/_Project/Prefabs/PostProcessVolume.prefab";
     const string HERO_NAME = "C_TitleHero";
+    // 足場の Prefab の中で、草のオブジェクトの名前の頭(三條さんの FloatingMeadowStage の Black_Grass_Batch_1〜4)
+    const string GRASS_NAME_PREFIX = "Black_Grass";
     const string STAGE_NAME = "C_TitleStage";
     const string POST_NAME = "C_TitlePost";
     const string TITLE_CANVAS_NAME = "C_TitleCanvas";
-    // 主人公は画面の右手前に大きく立ち、少しこちらを向く。Player の原点は体の中心なので、足が地面に着く高さに置く
-    static readonly Vector3 HERO_POSITION = new Vector3(0.95f, 1.08f, -1.5f);
+    // 主人公は画面の右手前(左のロゴとボタンに重ならない所)に大きく立ち、少しこちらを向く。高さ(y)は、置くときに地面を調べて足が着くように決める
+    static readonly Vector3 HERO_POSITION = new Vector3(1.05f, 0f, -2.6f);
+    // Player の原点から足の裏までの高さ(Player.prefab の Model が 1.08 下にあるため)
+    const float HERO_FOOT_OFFSET = 1.08f;
     static readonly Vector3 HERO_EULER = new Vector3(0f, 205f, 0f);
-    static readonly Vector3 TITLE_CAMERA_POSITION = new Vector3(0f, 1.25f, -3.6f);
-    static readonly Vector3 TITLE_CAMERA_TARGET = new Vector3(0f, 1f, 0f);
+    // カメラの位置と見る先(高さは地面からの高さ)。見上げる:足元近くの低い所から、主人公の胸から顔を見上げる(主人公がこちらを見下ろして見える)。正面:目の高さから見る
+    static readonly Vector3 LOW_CAMERA_POSITION = new Vector3(-0.2f, 0.3f, -4.2f);
+    static readonly Vector3 LOW_CAMERA_TARGET = new Vector3(0.2f, 1.7f, -1f);
+    static readonly Vector3 FRONT_CAMERA_POSITION = new Vector3(0f, 1.25f, -3.6f);
+    static readonly Vector3 FRONT_CAMERA_TARGET = new Vector3(0f, 1f, 0f);
 
     static readonly Color INK = new Color(0.043f, 0.043f, 0.051f, 1f);
     static readonly Color PAPER = new Color(0.925f, 0.92f, 0.9f, 1f);
@@ -61,29 +68,25 @@ public static class TitleResultSceneBuilder
         Animator heroAnimator = BuildTitleBackdrop();
 
         Canvas canvas = NewCanvas(TITLE_CANVAS_NAME);
-        // 奥の主人公が見えるよう、背景は塗らない。文字が読めるよう、左側だけ暗くする
-        Image shade = Img(canvas.transform, "LeftShade", new Color(INK.r, INK.g, INK.b, 0.62f));
-        Place(shade.rectTransform, new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(1060, 1200));
+        // 奥の主人公と景色がそのまま見えるよう、背景は塗らない
 
         RectTransform content = Place(Rect("Content", canvas.transform), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(110, 0), new Vector2(1000, 900));
-        // 主人公に重ならないよう、左側に収まる大きさにする
-        content.localScale = new Vector3(0.86f, 0.86f, 1f);
         CanvasGroup contentGroup = content.gameObject.AddComponent<CanvasGroup>();
 
         // タイトルに出すのは、ロゴ、始める、遊び方、自己ベストだけにする。説明は「遊び方」の中へ移す
-        TextMeshProUGUI logo = Text(content, "Logo", "ヒトフリ", 210, PAPER, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(-6, -200), new Vector2(1000, 240), true);
+        TextMeshProUGUI logo = Text(content, "Logo", "ヒトフリ", 260, PAPER, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(-6, -170), new Vector2(1150, 300), true);
         logo.characterSpacing = 6;
         logo.gameObject.AddComponent<ZapTextEffect>();
         CanvasGroup logoGroup = logo.gameObject.AddComponent<CanvasGroup>();
-        RectTransform logoSlash = Slash(content, "LogoSlash", new Vector2(-30, -330), 900, -5);
+        RectTransform logoSlash = Slash(content, "LogoSlash", new Vector2(-30, -360), 1100, -5);
 
         List<CanvasGroup> reveal = new List<CanvasGroup>();
-        RectTransform buttonRow = Place(Rect("Buttons", content), new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -500), new Vector2(980, 90));
-        Button start = NewButton(buttonRow, "StartButton", "始める", 44, new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(300, 86));
+        RectTransform buttonRow = Place(Rect("Buttons", content), new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -560), new Vector2(1000, 110));
+        Button start = NewButton(buttonRow, "StartButton", "始める", 56, new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(400, 108));
         start.GetComponentInChildren<TextMeshProUGUI>().gameObject.AddComponent<ZapTextEffect>();
-        Button howToOpen = NewButton(buttonRow, "HowToButton", "遊び方", 32, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(330, 0), new Vector2(220, 70));
+        Button howToOpen = NewButton(buttonRow, "HowToButton", "遊び方", 42, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(430, 0), new Vector2(300, 92));
         reveal.Add(buttonRow.gameObject.AddComponent<CanvasGroup>());
-        TextMeshProUGUI best = Text(content, "Best", "まだ記録はありません。", 22, ASH, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -620), new Vector2(980, 40));
+        TextMeshProUGUI best = Text(content, "Best", "まだ記録はありません。", 26, ASH, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -700), new Vector2(1000, 44));
         reveal.Add(best.gameObject.AddComponent<CanvasGroup>());
 
         // 主人公が斬ったときに、画面の端から端へ走る斬り跡
@@ -105,6 +108,8 @@ public static class TitleResultSceneBuilder
         Wire(screen, "logoSlash", logoSlash);
         Wire(screen, "screenSlash", screenSlash);
         Wire(screen, "heroAnimator", heroAnimator);
+        GameObject heroObject = GameObject.Find(HERO_NAME);
+        if (heroObject != null) Wire(screen, "hero", heroObject.transform);
         Wire(screen, "logoGroup", logoGroup);
         WireArray(screen, "revealInOrder", reveal.ToArray());
         Wire(screen, "flash", flash);
@@ -121,10 +126,17 @@ public static class TitleResultSceneBuilder
     /// <summary>遊び方の欄。タイトルの「遊び方」で開き、「閉じる」で戻る。閉じた状態で保存する</summary>
     static GameObject BuildHowToPanel(Transform canvas, out Button close)
     {
-        // 暗い幕はクリックを受け止めて、後ろのボタンに通さない
-        Image dim = Img(canvas, "HowToPanel", new Color(INK.r, INK.g, INK.b, 0.92f));
+        // 暗い幕はクリックを受け止めて、後ろのボタンに通さない。後ろが透けて読みにくくならないよう、ほぼ塗りつぶす
+        Image dim = Img(canvas, "HowToPanel", new Color(INK.r, INK.g, INK.b, 0.97f));
         dim.raycastTarget = true;
         Stretch(dim.rectTransform);
+        // 説明は金の細い枠の中にまとめる
+        Image frame = Img(dim.transform, "Frame", new Color(GOLD.r, GOLD.g, GOLD.b, 0.5f));
+        Place(frame.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240, 880));
+        Image panel = Img(frame.transform, "Panel", INK);
+        Stretch(panel.rectTransform);
+        panel.rectTransform.offsetMin = new Vector2(2, 2);
+        panel.rectTransform.offsetMax = new Vector2(-2, -2);
         RectTransform box = Place(Rect("Box", dim.transform), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100, 760));
 
         TextMeshProUGUI head = Text(box, "Head", "遊び方", 64, PAPER, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(600, 80), true);
@@ -154,11 +166,23 @@ public static class TitleResultSceneBuilder
     /// </summary>
     static Animator BuildTitleBackdrop()
     {
+        GameObject stage = PlacePrefab(STAGE_PREFAB, STAGE_NAME, Vector3.zero, Vector3.zero);
+        PlacePrefab(POST_PREFAB, POST_NAME, Vector3.zero, Vector3.zero);
+        float ground = GroundHeightAt(HERO_POSITION);
+        // カメラが低いので、黒い草が主人公の手前にかぶって体が黒く欠けて見える。タイトルでは草だけ隠す(地面は残す)
+        if (stage != null)
+        {
+            foreach (Transform child in stage.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name.StartsWith(GRASS_NAME_PREFIX)) SetSerializedBool(child.gameObject, "m_IsActive", false);
+            }
+        }
+
         Camera camera = Camera.main;
         if (camera != null)
         {
-            camera.transform.position = TITLE_CAMERA_POSITION;
-            camera.transform.LookAt(TITLE_CAMERA_TARGET);
+            // 少し下から見上げると、主人公が大きく強く見える(髙橋さんの案)。微妙なら「タイトルのカメラを正面にする」で戻せる
+            SetCameraPose(camera, LOW_CAMERA_POSITION, LOW_CAMERA_TARGET, ground);
             // 夜の島に見えるよう、空は墨色にする
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = INK;
@@ -171,10 +195,10 @@ public static class TitleResultSceneBuilder
             EditorUtility.SetDirty(cameraData);
         }
 
-        PlacePrefab(STAGE_PREFAB, STAGE_NAME, Vector3.zero, Vector3.zero);
-        PlacePrefab(POST_PREFAB, POST_NAME, Vector3.zero, Vector3.zero);
-
-        GameObject hero = PlacePrefab(HERO_PREFAB, HERO_NAME, HERO_POSITION, HERO_EULER);
+        // 足場の地面の高さを調べて、足が地面に乗るように置く(地面より下に置くと、体が草と土に埋まる)
+        Vector3 heroPosition = HERO_POSITION;
+        heroPosition.y = ground + HERO_FOOT_OFFSET;
+        GameObject hero = PlacePrefab(HERO_PREFAB, HERO_NAME, heroPosition, HERO_EULER);
         if (hero == null) return null;
         // タイトルでは見た目だけ使う。操作、被弾、当たり判定のスクリプトは切る(Prefab は変えず、このシーンの中だけの設定)
         foreach (MonoBehaviour behaviour in hero.GetComponents<MonoBehaviour>()) SetSerializedBool(behaviour, "m_Enabled", false);
@@ -183,7 +207,51 @@ public static class TitleResultSceneBuilder
         // 斬り戻しの線(狙いの線)は、操作のスクリプトを切ると出たままになるので隠す
         Transform slashLine = hero.transform.Find("SlashLine");
         if (slashLine != null) SetSerializedBool(slashLine.gameObject, "m_IsActive", false);
+        // 刀の軌跡や狙いの線(ゲーム中に使う黒い線)は、タイトルでは消す
+        foreach (TrailRenderer trail in hero.GetComponentsInChildren<TrailRenderer>(true)) SetSerializedBool(trail, "m_Enabled", false);
+        foreach (LineRenderer line in hero.GetComponentsInChildren<LineRenderer>(true)) SetSerializedBool(line, "m_Enabled", false);
         return hero.GetComponentInChildren<Animator>();
+    }
+
+    [MenuItem("Hitofuri/増永/タイトルのカメラを見上げる向きにする")]
+    static void TitleCameraLow() => SetTitleCamera(LOW_CAMERA_POSITION, LOW_CAMERA_TARGET);
+
+    [MenuItem("Hitofuri/増永/タイトルのカメラを正面にする")]
+    static void TitleCameraFront() => SetTitleCamera(FRONT_CAMERA_POSITION, FRONT_CAMERA_TARGET);
+
+    /// <summary>タイトルのカメラだけを置き直す(画面を作り直さずに、2つの向きを見比べるため)</summary>
+    static void SetTitleCamera(Vector3 position, Vector3 target)
+    {
+        Camera camera = Camera.main;
+        if (camera == null)
+        {
+            Debug.LogWarning("[TitleResultSceneBuilder] Main Camera が無い。TitleScene を開いてから押す");
+            return;
+        }
+        Undo.RecordObject(camera.transform, "Title Camera");
+        SetCameraPose(camera, position, target, GroundHeightAt(HERO_POSITION));
+    }
+
+    // position と target の高さは地面からの高さ。足場の高さが変わっても、主人公との見え方が同じになるようにする
+    static void SetCameraPose(Camera camera, Vector3 position, Vector3 target, float ground)
+    {
+        camera.transform.position = position + Vector3.up * ground;
+        camera.transform.LookAt(target + Vector3.up * ground);
+        EditorUtility.SetDirty(camera.transform);
+    }
+
+    /// <summary>上から下へ線を飛ばして、その位置の地面の高さを返す。地面が見つからなければ 0</summary>
+    static float GroundHeightAt(Vector3 position)
+    {
+        // 置いたばかりの足場の当たり判定を、線の判定に反映させる
+        Physics.SyncTransforms();
+        Vector3 from = new Vector3(position.x, position.y + 30f, position.z);
+        if (Physics.Raycast(from, Vector3.down, out RaycastHit hit, 60f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        {
+            return hit.point.y;
+        }
+        Debug.LogWarning("[TitleResultSceneBuilder] 主人公の足元に地面が見つからなかったので、高さ 0 に置いた。C_TitleHero の Position Y で直せる");
+        return 0f;
     }
 
     static GameObject PlacePrefab(string path, string name, Vector3 position, Vector3 euler)
