@@ -23,6 +23,9 @@ public static class TimeController
     // 止めた本人が解除する形にするため、要求者ごとに持つ。2人が止めたら2人とも解除するまで動かない
     static readonly HashSet<object> pauseOwners = new HashSet<object>();
     static readonly List<SlowRequest> slows = new List<SlowRequest>();
+    // 長さが前もって決まらないスロー(演出など)。止めた本人が ReleaseSlow で解除する
+    static readonly Dictionary<object, float> slowOwners = new Dictionary<object, float>();
+    static readonly List<object> destroyedSlowOwners = new List<object>();
     static float hitStopRemaining;
     static TimeControllerRunner runner;
 
@@ -49,6 +52,26 @@ public static class TimeController
         Apply();
     }
 
+    /// <summary>
+    /// 解除するまで続くスロー。owner には呼んだ本人(this)を渡し、解除も同じ owner で行う。
+    /// 同じ owner で呼び直すと倍率を上書きする。Slow と重なったら最も遅い倍率を使う
+    /// </summary>
+    public static void RequestSlow(object owner, float scale)
+    {
+        if (owner == null) return;
+        if (!EnsureRunner()) return;
+        slowOwners[owner] = Mathf.Clamp01(scale);
+        Apply();
+    }
+
+    /// <summary>RequestSlow で遅くした本人が解除する</summary>
+    public static void ReleaseSlow(object owner)
+    {
+        if (owner == null) return;
+        if (!slowOwners.Remove(owner)) return;
+        Apply();
+    }
+
     /// <summary>時間を止める。owner には呼んだ本人(this)を渡し、解除も同じ owner で行う</summary>
     public static void RequestPause(object owner)
     {
@@ -71,6 +94,7 @@ public static class TimeController
     {
         // 解除し忘れたまま破棄されたオブジェクトのせいで、ずっと止まったままにならないようにする
         pauseOwners.RemoveWhere(owner => owner is Object unityObject && unityObject == null);
+        RemoveDestroyedSlowOwners();
 
         // 銘の選択中などで止まっている間は、ヒットストップとスローの残り時間を減らさない
         if (!IsPaused)
@@ -104,7 +128,23 @@ public static class TimeController
         {
             scale = Mathf.Min(scale, slow.Scale);
         }
+        foreach (float ownerScale in slowOwners.Values)
+        {
+            scale = Mathf.Min(scale, ownerScale);
+        }
         return scale;
+    }
+
+    // 解除し忘れたまま破棄されたオブジェクトのせいで、ずっと遅いままにならないようにする
+    static void RemoveDestroyedSlowOwners()
+    {
+        if (slowOwners.Count == 0) return;
+        foreach (object owner in slowOwners.Keys)
+        {
+            if (owner is Object unityObject && unityObject == null) destroyedSlowOwners.Add(owner);
+        }
+        foreach (object owner in destroyedSlowOwners) slowOwners.Remove(owner);
+        destroyedSlowOwners.Clear();
     }
 
     static bool EnsureRunner()
@@ -124,6 +164,7 @@ public static class TimeController
         // 前のシーンのヒットストップやスローを次のシーンに持ち込まない
         hitStopRemaining = 0f;
         slows.Clear();
+        slowOwners.Clear();
         Apply();
     }
 
@@ -133,6 +174,7 @@ public static class TimeController
     {
         pauseOwners.Clear();
         slows.Clear();
+        slowOwners.Clear();
         hitStopRemaining = 0f;
         runner = null;
         Time.timeScale = NORMAL_SCALE;
