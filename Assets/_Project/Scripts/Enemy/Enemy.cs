@@ -16,6 +16,9 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
     [SerializeField] LayerMask groundMask = 1;
     [Tooltip("柵などの障害物。初期値はIgnore Raycastレイヤー。地面の判定とは分ける")]
     [SerializeField] LayerMask movementObstacleMask = 4;
+    readonly Collider[] overlapHits = new Collider[32];
+    readonly RaycastHit[] sweepHits = new RaycastHit[32];
+    readonly System.Collections.Generic.HashSet<Collider> separating = new System.Collections.Generic.HashSet<Collider>();
     Vector3 velocity;
     Vector3 lastDirection = Vector3.forward;
     float glow;
@@ -48,14 +51,18 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
         displacement.y = 0;
         if (displacement.sqrMagnitude < .000001f) return true;
         var direction = displacement.normalized;
-        if (ObstacleDistance(direction,displacement.magnitude,out _)) return false;
+
         int steps = Mathf.Max(1, Mathf.CeilToInt(displacement.magnitude / tuning.ProbeStepDistance));
         Vector3 destination = transform.position;
         for (int i = 1; i <= steps; i++)
         {
             var candidate = transform.position + displacement * (i / (float)steps);
             if (!TryGround(candidate, out var hit) || !HasGround(candidate + direction * tuning.PursuitGroundMargin)) return false;
-            destination = new Vector3(candidate.x, hit.point.y, candidate.z);
+            var next = new Vector3(candidate.x, hit.point.y, candidate.z);
+            var step = next - destination;
+            // 床の高さを含む実際の変位を、各サンプルの開始位置から掃引する。
+            if (step.sqrMagnitude > .000001f && ObstacleDistance(step.normalized, step.magnitude, out _, destination)) return false;
+            destination = next;
         }
         transform.position = destination;return true;
     }
@@ -66,21 +73,51 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
         if (direction.sqrMagnitude > .000001f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), degrees);
     }
     /// <summary>実Colliderと同じ形を移動先へ掃引し、接触まで進める距離を返す。</summary>
-    bool ObstacleDistance(Vector3 direction, float distance, out float available)
+    bool ObstacleDistance(Vector3 direction, float distance, out float available, Vector3? rootPosition = null)
     {
         available = distance;
         if (bodyCollider == null) return false;
         GetWorldCapsule(out var bottom, out var top, out float radius);
-        // CapsuleCastは開始時点ですでに重なる柵を拾わない。先に同じ形の重なりを調べ、移動量を0にする。
-        if (Physics.CheckCapsule(bottom, top, radius, movementObstacleMask, QueryTriggerInteraction.Ignore))
+        Vector3 offset = (rootPosition ?? transform.position) - transform.position;
+        bottom += offset; top += offset; separating.Clear();
+        int overlaps = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlapHits, movementObstacleMask, QueryTriggerInteraction.Ignore);
+        if (overlaps == overlapHits.Length) { available = 0; return true; }
+        for (int i = 0; i < overlaps; i++)
         {
-            available = 0;
-            return true;
+            var obstacle = overlapHits[i]; overlapHits[i] = null;
+            // 重なりから押し出す向きへ進む場合だけ許可する。柵の奥へは通さない。
+            if (TrySeparation(obstacle, offset, out var outward, out _))
+            {
+                if (Vector3.Dot(direction, outward) <= .00001f) { available = 0; return true; }
+                separating.Add(obstacle);
+            }
         }
-        if (!Physics.CapsuleCast(bottom, top, radius, direction, out var hit, distance, movementObstacleMask, QueryTriggerInteraction.Ignore)) return false;
-        // CapsuleCastは形全体を掃引済みなので、半径をもう一度引かない。
-        available = Mathf.Max(0, hit.distance);
-        return true;
+        int count = Physics.CapsuleCastNonAlloc(bottom, top, radius, direction, sweepHits, distance, movementObstacleMask, QueryTriggerInteraction.Ignore);
+        if (count == sweepHits.Length) { available = 0; return true; }
+        bool blocked = false;
+        for (int i = 0; i < count; i++)
+        {
+            var hit = sweepHits[i];
+            if (separating.Contains(hit.collider)) continue;
+            // 接触だけの距離0ヒットでは、接触面から離れる・沿う方向を妨げない。
+            if (hit.distance <= .00001f && Vector3.Dot(direction, hit.normal) >= -.00001f) continue;
+            available = Mathf.Min(available, Mathf.Max(0, hit.distance)); blocked = true;
+        }
+        return blocked;
+    }
+
+    bool TrySeparation(Collider obstacle, Vector3 offset, out Vector3 outward, out float depth)
+    {
+        // 吹き飛び中は接触ダメージ用Colliderが無効で、ComputePenetrationが形状を取得できない。
+        // 同期計算の間だけ形状を有効にし、移動・イベント発行の前に必ず元へ戻す。
+        bool wasEnabled = bodyCollider.enabled;
+        try
+        {
+            if (!wasEnabled) bodyCollider.enabled = true;
+            return Physics.ComputePenetration(bodyCollider, bodyCollider.transform.position + offset, bodyCollider.transform.rotation,
+                obstacle, obstacle.transform.position, obstacle.transform.rotation, out outward, out depth);
+        }
+        finally { if (!wasEnabled) bodyCollider.enabled = false; }
     }
 
     void GetWorldCapsule(out Vector3 bottom, out Vector3 top, out float radius)

@@ -13,6 +13,10 @@ public sealed class EnemyWavePlan : ScriptableObject
         [SerializeField] EnemySpawnArea areas = EnemySpawnArea.AnyEdge;
         [SerializeField, Min(0f)] float delay;
         [SerializeField, Min(.01f)] float interval = .7f;
+        [Tooltip("空なら上のPrefabを使用。複数登録すると1体ごとに等確率で選ぶ")]
+        [SerializeField] GameObject[] randomPrefabs;
+        public GameObject[] RandomPrefabs => randomPrefabs;
+        public GameObject PickPrefab() => randomPrefabs != null && randomPrefabs.Length > 0 ? randomPrefabs[UnityEngine.Random.Range(0, randomPrefabs.Length)] : prefab;
         public GameObject Prefab => prefab;
         public int Count => Mathf.Max(1, count);
         public EnemySpawnArea Areas => areas;

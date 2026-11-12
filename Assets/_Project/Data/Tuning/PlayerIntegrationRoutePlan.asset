@@ -16,8 +16,15 @@ MonoBehaviour:
   - label: 'Real Player route: one Shadow'
     batches:
     - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
-      count: 1
-      areas: 4
+      count: 20
+      areas: -1
+      delay: 3
+      interval: 0.7
+  - label: "\u65B0\u3057\u3044\u6CE2"
+    batches:
+    - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      count: 30
+      areas: 30
       delay: 0
       interval: 0.7
   initialDelay: 0.6

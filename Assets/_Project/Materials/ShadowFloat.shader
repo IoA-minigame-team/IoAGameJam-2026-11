@@ -67,7 +67,9 @@ Shader "Hitofuri/ShadowFloat"
                 // 刀の光に色があっても、敵と舞台は白黒のままに保つ。
                 half3 weights=half3(.2126,.7152,.0722);
                 half intensity=dot(illumination,weights),baseValue=dot(_BaseColor.rgb,weights);
-                half value=lerp(baseValue,.9h,saturate(_GlowRatio))*(intensity+.12h)+rim*saturate(intensity)*.10h+dot(_EmissionColor.rgb,weights)+saturate(_GlowRatio)*.18h;
+                // 蓄積は輪郭と明暗差で示し、全身を白一色にして移動姿勢を潰さない。
+                half glow=saturate(_GlowRatio);
+                half value=lerp(baseValue,.12h,glow)*(intensity+.12h)+rim*(.10h+saturate(glow)*.60h)+dot(_EmissionColor.rgb,weights)+glow*.035h;
                 half3 color=half3(value,value,value);
                 return half4(MixFog(color,i.fog),1);
             }

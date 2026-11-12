@@ -42,7 +42,12 @@ public static class EnemyCheckCancellationChecks
     {
         if(!SessionState.GetBool(KEY,false))return;
         if(state==PlayModeStateChange.EnteredPlayMode){due=EditorApplication.timeSinceStartup+.4;EditorApplication.update+=Tick;}
-        if(state==PlayModeStateChange.ExitingPlayMode)EditorApplication.update-=Tick;
+        if(state==PlayModeStateChange.ExitingPlayMode)
+        {
+            EditorApplication.update-=Tick;
+            int stopPhase=SessionState.GetInt(KEY+".phase",0);
+            if(stopPhase!=1&&stopPhase!=3)CancelSuite();
+        }
         if(state!=PlayModeStateChange.EnteredEditMode)return;
         int phase=SessionState.GetInt(KEY+".phase",0);
         if(phase==1)
@@ -57,6 +62,14 @@ public static class EnemyCheckCancellationChecks
             if(next==RUNNERS.Length){Finish(null);return;}
             SessionState.SetInt(KEY+".index",next);SessionState.SetInt(KEY+".phase",0);EditorApplication.delayCall+=StartRunner;
         }
+    }
+    static void CancelSuite()
+    {
+        EditorApplication.update-=Tick;EditorApplication.playModeStateChanged-=AuditStop;
+        EditorApplication.delayCall-=StartRunner;EditorApplication.delayCall-=EditorApplication.EnterPlaymode;
+        SessionState.EraseBool(KEY);
+        foreach(string suffix in new[]{".index",".phase",".count",".background",".editorInput"})SessionState.EraseInt(KEY+suffix);
+        Debug.Log("検証スイートを手動停止しました。通常Playには持ち越しません。");
     }
     static void Tick()
     {

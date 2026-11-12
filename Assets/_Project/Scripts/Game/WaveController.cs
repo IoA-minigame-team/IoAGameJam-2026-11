@@ -16,6 +16,7 @@ public sealed class WaveController : MonoBehaviour
     [SerializeField] bool startAutomatically = true;
     [SerializeField] bool autoAdvance = true;
     // 添字は「現在の波の出現グループ」。remaining=未出現数、due=次に出す時刻。
+    GameObject[] chosenPrefabs;
     int[] remaining;
     float[] due, blockedSince;
     float elapsed, delay;
@@ -72,7 +73,13 @@ public sealed class WaveController : MonoBehaviour
         {
             if (wave == null || wave.Batches == null || wave.Batches.Length == 0) { Fault("Empty wave definition.");return false; }
             foreach (var batch in wave.Batches)
-                if (batch == null || batch.Prefab == null || batch.Prefab.GetComponent<Enemy>() == null) { Fault("Wave batch needs an Enemy prefab.");return false; }
+            {
+                if (batch == null) { Fault("Wave batch is missing."); return false; }
+                var choices = batch.RandomPrefabs;
+                if (choices == null || choices.Length == 0) choices = new[] { batch.Prefab };
+                foreach (var choice in choices)
+                    if (choice == null || choice.GetComponent<Enemy>() == null) { Fault("Wave batch needs an Enemy prefab."); return false; }
+            }
         }
         return true;
     }
@@ -102,14 +109,15 @@ public sealed class WaveController : MonoBehaviour
         {
             while (remaining[i] > 0 && elapsed >= due[i] && budget > 0 && State == WaveState.Spawning)
             {
-                if (!spawner.TrySpawn(batches[i].Prefab, batches[i].Areas, out _))
+                if(chosenPrefabs[i]==null)chosenPrefabs[i]=batches[i].PickPrefab();
+                if (!spawner.TrySpawn(chosenPrefabs[i], batches[i].Areas, out _))
                 {
                     // 塞がれた出現を「出した」と数えない。再試行し、長く失敗した場合は原因付きで止める。
                     if (blockedSince[i] < 0) blockedSince[i] = elapsed;
                     if (elapsed - blockedSince[i] >= plan.BlockedTimeout) { Fault(spawner.LastFailure);return; }
                     due[i] = elapsed + plan.RetryInterval;break;
                 }
-                remaining[i]--;PendingCount--;SpawnedThisWave++;budget--;blockedSince[i] = -1;
+                chosenPrefabs[i]=null;remaining[i]--;PendingCount--;SpawnedThisWave++;budget--;blockedSince[i] = -1;
                 due[i] += batches[i].Interval;
             }
         }
@@ -132,7 +140,7 @@ public sealed class WaveController : MonoBehaviour
         // 予定数と現在番号を先に確定してから通知する。購読先のUIが最新の残数を読める順序にする。
         CurrentWaveNumber = number;SpawnedThisWave = PendingCount = 0;elapsed = 0;
         var batches = plan.Waves[number - 1].Batches;
-        remaining = new int[batches.Length];due = new float[batches.Length];blockedSince = new float[batches.Length];
+        chosenPrefabs = new GameObject[batches.Length];remaining = new int[batches.Length];due = new float[batches.Length];blockedSince = new float[batches.Length];
         for (int i = 0; i < batches.Length; i++) { remaining[i] = batches[i].Count;PendingCount += remaining[i];due[i] = batches[i].Delay;blockedSince[i] = -1; }
         State = WaveState.Spawning;
         GameEvents.RaiseWaveStarted(number);

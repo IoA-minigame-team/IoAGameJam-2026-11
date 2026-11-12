@@ -73,7 +73,29 @@ public sealed class EnemyStageTools : EditorWindow
                 using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
                     EditorGUILayout.LabelField("出現グループ "+(i+1),EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(batch.FindPropertyRelative("prefab"),new GUIContent("敵のPrefab"));
+                    var fixedPrefab=batch.FindPropertyRelative("prefab");
+                    string[] names={"影","盾持ち","灯喰らい（人狼モデル）"};
+                    string[] files={"Shadow","Shield","Werewolf"};
+                    using(new EditorGUILayout.HorizontalScope())for(int kind=0;kind<3;kind++)
+                        if(GUILayout.Button(names[kind]))
+                        {
+                            fixedPrefab.objectReferenceValue=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Floating"+files[kind]+"Enemy.prefab");
+                            batch.FindPropertyRelative("randomPrefabs").arraySize=0;
+                        }
+                    EditorGUILayout.PropertyField(fixedPrefab,new GUIContent("固定で出す敵"));
+                    var random=batch.FindPropertyRelative("randomPrefabs");
+                    bool randomized=random.arraySize>0;
+                    bool useRandom=EditorGUILayout.Toggle("種類を1体ごとにランダム",randomized);
+                    if(useRandom!=randomized)
+                    {
+                        random.arraySize=useRandom?3:0;
+                        if(useRandom)for(int kind=0;kind<3;kind++)random.GetArrayElementAtIndex(kind).objectReferenceValue=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Floating"+files[kind]+"Enemy.prefab");
+                    }
+                    if(useRandom)
+                    {
+                        EditorGUILayout.PropertyField(random,new GUIContent("ランダム候補（等確率）"),true);
+                        EditorGUILayout.HelpBox("候補から1体ずつ抽選します。必ず3種類が揃う方式ではありません。上の種類ボタンを押すと固定出現へ戻ります。",MessageType.Info);
+                    }
                     var count=batch.FindPropertyRelative("count");count.intValue=Mathf.Max(1,EditorGUILayout.IntField("出す数",count.intValue));
                     var delay=batch.FindPropertyRelative("delay");delay.floatValue=Mathf.Max(0,EditorGUILayout.FloatField("開始を遅らせる秒数",delay.floatValue));
                     var interval=batch.FindPropertyRelative("interval");interval.floatValue=Mathf.Max(.01f,EditorGUILayout.FloatField("1体ごとの間隔（秒）",interval.floatValue));
@@ -107,7 +129,7 @@ public sealed class EnemyStageTools : EditorWindow
     static void InitializeBatch(SerializedProperty batch)
     {
         batch.FindPropertyRelative("prefab").objectReferenceValue=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/FloatingShadowEnemy.prefab");
-        batch.FindPropertyRelative("count").intValue=1;batch.FindPropertyRelative("areas").intValue=(int)EnemySpawnArea.AnyEdge;batch.FindPropertyRelative("delay").floatValue=0;batch.FindPropertyRelative("interval").floatValue=.7f;
+        batch.FindPropertyRelative("randomPrefabs").arraySize=0;batch.FindPropertyRelative("count").intValue=1;batch.FindPropertyRelative("areas").intValue=(int)EnemySpawnArea.AnyEdge;batch.FindPropertyRelative("delay").floatValue=0;batch.FindPropertyRelative("interval").floatValue=.7f;
     }
     void DrawPoints()
     {
@@ -129,12 +151,12 @@ public sealed class EnemyStageTools : EditorWindow
                 using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
                     using(new EditorGUILayout.HorizontalScope()){EditorGUILayout.ObjectField(point,typeof(EnemySpawnPoint),true);if(GUILayout.Button("選択",GUILayout.Width(60))){Selection.activeGameObject=point.gameObject;if(SceneView.lastActiveSceneView!=null)SceneView.lastActiveSceneView.FrameSelected();}}
-                    bool active=EditorGUILayout.Toggle("この点を使う",point.gameObject.activeSelf);if(active!=point.gameObject.activeSelf){Undo.RecordObject(point.gameObject,"出現点の有効変更");point.gameObject.SetActive(active);DirtyScene();}
+                    bool active=EditorGUILayout.Toggle("この点を使う",point.gameObject.activeSelf);if(active!=point.gameObject.activeSelf){SetPointActive(point,active);DirtyScene();}
                     var data=new SerializedObject(point);EditorGUI.BeginChangeCheck();EditorGUILayout.PropertyField(data.FindProperty("areas"),new GUIContent("区域"));EditorGUILayout.PropertyField(data.FindProperty("radius"),new GUIContent("周辺に出す半径"));if(EditorGUI.EndChangeCheck()){data.ApplyModifiedProperties();DirtyScene();}
-                    Vector3 position=EditorGUILayout.Vector3Field("座標",point.transform.position);if(position!=point.transform.position){Undo.RecordObject(point.transform,"出現点を移動");point.transform.position=position;DirtyScene();}
+                    Vector3 position=EditorGUILayout.Vector3Field("座標",point.transform.position);if(position!=point.transform.position){MovePoint(point,position);DirtyScene();}
                     if(GUILayout.Button("真下の床へ高さを合わせる"))
                     {
-                        Physics.SyncTransforms();if(Physics.Raycast(point.transform.position+Vector3.up*10,Vector3.down,out var hit,50,1,QueryTriggerInteraction.Ignore)){Undo.RecordObject(point.transform,"出現点を床へ");point.transform.position=hit.point;DirtyScene();}
+                        Physics.SyncTransforms();if(Physics.Raycast(point.transform.position+Vector3.up*10,Vector3.down,out var hit,50,1,QueryTriggerInteraction.Ignore)){MovePoint(point,hit.point);DirtyScene();}
                     }
                 }
             }
@@ -142,6 +164,9 @@ public sealed class EnemyStageTools : EditorWindow
         }
         if(!editable)EditorGUILayout.HelpBox("Play中や他担当のシーンでは読み取り専用です。",MessageType.Info);
     }
+    // SceneのDirtyだけではPrefab由来の座標・有効状態は保存されない。変更対象ごとにOverrideを記録する。
+    public static void MovePoint(EnemySpawnPoint point,Vector3 position){Undo.RecordObject(point.transform,"出現点を移動");point.transform.position=position;PrefabUtility.RecordPrefabInstancePropertyModifications(point.transform);}
+    public static void SetPointActive(EnemySpawnPoint point,bool value){Undo.RecordObject(point.gameObject,"出現点の有効変更");point.gameObject.SetActive(value);PrefabUtility.RecordPrefabInstancePropertyModifications(point.gameObject);}
     void DirtyScene()=>EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
     void DrawConnections()
     {
@@ -184,9 +209,11 @@ public sealed class EnemyStageTools : EditorWindow
             foreach(var batch in wave.Batches)
             {
                 if(batch==null){result.Add("NG 第"+(i+1)+"波の出現グループが未設定です");continue;}
-                if(batch.Prefab==null||!batch.Prefab.TryGetComponent<Enemy>(out var enemy)){result.Add("NG 第"+(i+1)+"波: Enemyを持たない出現Prefab");continue;}
-                if(enemy.Tuning==null)result.Add("NG EnemyTuningが未設定: "+batch.Prefab.name);
-                if(!points.Any(p=>p!=null&&p.isActiveAndEnabled&&(p.Areas&batch.Areas)!=0))result.Add("NG 区域に対応する出現点がありません: "+batch.Prefab.name);
+                var candidates=batch.RandomPrefabs;
+                if(candidates==null||candidates.Length==0)candidates=new[]{batch.Prefab};
+                foreach(var candidate in candidates)
+                    if(candidate==null||candidate.GetComponent<Enemy>()==null||candidate.GetComponent<Enemy>().Tuning==null)result.Add("NG 第"+(i+1)+"波: 敵PrefabまたはEnemyTuningが未設定");
+                if(!points.Any(p=>p!=null&&p.isActiveAndEnabled&&(p.Areas&batch.Areas)!=0))result.Add("NG 第"+(i+1)+"波: 区域に対応する出現点がありません");
             }
         }
         if(EditorApplication.isPlaying){result.Add(players.Length==1&&GameContext.PlayerTransform==players[0].transform?"OK 主人公の共通参照が登録済み":"NG 主人公の共通参照が不一致");result.Add("銘実装: "+GameContext.MeiStats.GetType().Name);}
