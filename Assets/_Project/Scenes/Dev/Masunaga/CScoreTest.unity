@@ -494,6 +494,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CTestDriver
   fallsPerSwing: 7
   fallInterval: 0.12
+  shakeStrength: 0.5
+  shakeDuration: 0.25
+  vfxOffset: {x: 0, y: 0, z: 3}
   showHelp: 1
   score: {fileID: 2042629479}
 --- !u!4 &130793288
@@ -1092,6 +1095,7 @@ MonoBehaviour:
   - {fileID: 1852716830}
   - {fileID: 1521434869}
   lift: {fileID: 601549404}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -2639,6 +2643,7 @@ MonoBehaviour:
   - {fileID: 754700052}
   - {fileID: 830284830}
   lift: {fileID: 1945380751}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -3508,6 +3513,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1020318000}
   - component: {fileID: 1020317999}
+  - component: {fileID: 1020318001}
   m_Layer: 0
   m_Name: C_Mei
   m_TagString: Untagged
@@ -3546,6 +3552,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1020318001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1020317998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa86f1ed9b458c04c8cd4d36d2f0901f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShinEffect
+  tuning: {fileID: 11400000, guid: eecd407cdbd39b0459735379ea805060, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &1022670088
 GameObject:
   m_ObjectHideFlags: 0
@@ -6923,6 +6945,7 @@ MonoBehaviour:
   detailText: {fileID: 0}
   pips: []
   lift: {fileID: 874233374}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -7836,6 +7859,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeiTestDriver
   meiManager: {fileID: 1020317999}
   fallsPerPress: 15
+  targetCount: 10
+  targetMinDistance: 1.2
+  targetMaxDistance: 4.5
   showHelp: 1
 --- !u!4 &1944968905
 Transform:
@@ -8547,6 +8573,7 @@ MonoBehaviour:
   - {fileID: 862393642}
   - {fileID: 1436958492}
   lift: {fileID: 1421184292}
+  tuning: {fileID: 11400000, guid: 1f4f620a4c034b14ea5ec4bc845b317c, type: 2}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}

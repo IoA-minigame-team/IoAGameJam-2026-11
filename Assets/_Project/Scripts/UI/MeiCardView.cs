@@ -18,6 +18,8 @@ public sealed class MeiCardView : MonoBehaviour, ISelectHandler, IDeselectHandle
     [Tooltip("小銘の段数。三段なら3つ並べる")]
     [SerializeField] Image[] pips;
     [SerializeField] RectTransform lift;
+    [Tooltip("持ち上げる高さと速さを読む")]
+    [SerializeField] FeedbackTuning tuning;
 
     [Header("色")]
     [SerializeField] Color frameNormal = new Color(1f, 1f, 1f, 0.14f);
@@ -85,8 +87,8 @@ public sealed class MeiCardView : MonoBehaviour, ISelectHandler, IDeselectHandle
 
     void Update()
     {
-        if (lift == null) return;
-        liftNow = Mathf.MoveTowards(liftNow, selected ? 10f : 0f, Time.unscaledDeltaTime * 80f);
+        if (lift == null || tuning == null) return;
+        liftNow = Mathf.MoveTowards(liftNow, selected ? tuning.MeiCardLiftHeight : 0f, Time.unscaledDeltaTime * tuning.MeiCardLiftSpeed);
         lift.anchoredPosition = new Vector2(0f, liftNow);
     }
 

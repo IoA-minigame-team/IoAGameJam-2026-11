@@ -118,17 +118,34 @@ public sealed class MeiTuning : ScriptableObject
     [SerializeField, Min(1f)] float defaultCap = 2f;
 
     [Header("大銘")]
-    [Tooltip("ウェーブをクリアしたときに大銘の候補を出すか。大銘の効果のタスクが終わるまではオフにしておく")]
-    [SerializeField] bool offerMajorMei = false;
-    [Tooltip("必達は「返し」と増永の1種。残りは enabled をオフにすると候補から外れる")]
+    [Tooltip("ウェーブをクリアしたときに大銘の候補を出すか")]
+    [SerializeField] bool offerMajorMei = true;
+    [Tooltip("必達は「返し」(髙橋さん)と「震」(増永)。残光と引力は効果をまだ作っていないので、オフにして候補から外してある")]
     [SerializeField]
     MajorMeiDef[] majorMeis =
     {
         new MajorMeiDef(MajorMeiId.Kaeshi, "返し", "斬り抜けた直後、同じ線を逆向きにもう一度斬り抜ける", "ふたつの光が逆向きに回る", true),
         new MajorMeiDef(MajorMeiId.Shin, "震", "斬り抜けて止まった瞬間、周りの敵を外へ押し出す", "脈打つ波紋が広がる", true),
-        new MajorMeiDef(MajorMeiId.Zanko, "残光", "斬り抜けた線に雷がしばらく残り、触れた敵を弾き出す", "小さな黒い稲妻が走る", true),
-        new MajorMeiDef(MajorMeiId.Inryoku, "引力", "刀を刺した瞬間、周りの敵を刀へ引き寄せる", "光の粒が刀へ吸いこまれる", true),
+        new MajorMeiDef(MajorMeiId.Zanko, "残光", "斬り抜けた線に雷がしばらく残り、触れた敵を弾き出す", "小さな黒い稲妻が走る", false),
+        new MajorMeiDef(MajorMeiId.Inryoku, "引力", "刀を刺した瞬間、周りの敵を刀へ引き寄せる", "光の粒が刀へ吸いこまれる", false),
     };
+
+    [Header("大銘「震」")]
+    [Tooltip("斬り抜けて止まった所から、この半径(m)の中の敵を外へ押し出す")]
+    [SerializeField, Min(0.1f)] float shinRadius = 4f;
+    [Tooltip("押し出す速さ(m/s)。仕様書の基本の吹き飛ばし力(6m/s)より少し強くして、島の外まで届きやすくする")]
+    [SerializeField, Min(0f)] float shinPower = 8f;
+    [Tooltip("半径の端にいる敵の押し出す速さの割合。近いほど強く、遠いほど弱くする")]
+    [SerializeField, Range(0f, 1f)] float shinEdgePowerRatio = 0.5f;
+    [Tooltip("押し出した瞬間の画面の揺れの強さと秒数")]
+    [SerializeField, Min(0f)] float shinShakeStrength = 0.6f;
+    [SerializeField, Min(0f)] float shinShakeDuration = 0.25f;
+
+    [Header("テスト用の敵(Dev シーンで震を試すときだけ使う)")]
+    [Tooltip("試しの敵が押し出されたあと、1秒あたりに減る速さの割合。大きいほど早く止まる")]
+    [SerializeField, Min(0f)] float testTargetFriction = 3f;
+    [Tooltip("試しの敵がこれより遅くなったら止まったことにする速さ(m/s)")]
+    [SerializeField, Min(0f)] float testTargetStopSpeed = 0.05f;
 
     [Header("画面")]
     [Tooltip("最後に落ちた敵から選択画面を開くまでの実時間(秒)。群れが落ちきるのを見せてから止めるため")]
@@ -141,6 +158,13 @@ public sealed class MeiTuning : ScriptableObject
     public MajorMeiDef[] MajorMeis => majorMeis;
     public bool OfferMajorMei => offerMajorMei;
     public float OpenDelay => openDelay;
+    public float ShinRadius => shinRadius;
+    public float ShinPower => shinPower;
+    public float ShinEdgePowerRatio => shinEdgePowerRatio;
+    public float ShinShakeStrength => shinShakeStrength;
+    public float ShinShakeDuration => shinShakeDuration;
+    public float TestTargetFriction => testTargetFriction;
+    public float TestTargetStopSpeed => testTargetStopSpeed;
 
     public float GetCap(MeiStat stat)
     {
