@@ -570,6 +570,24 @@ public sealed class PlayerController : MonoBehaviour
         if (owner != null) controlHolds.Remove(owner);
     }
 
+    // ---- 場外からの復帰 ----
+
+    /// <summary>
+    /// 主人公を position へ戻す。場外へ落ちたとき PlayerHealth が呼ぶ。
+    /// 状態はそのまま(手ぶらなら刀は刺さったままで、戻った位置から線が伸びる)
+    /// </summary>
+    public void Respawn(Vector3 position)
+    {
+        // 斬り抜け中は CharacterController を切って線の上を直接動かしているので、落ちることはなく、位置も上書きされる
+        if (CurrentState == State.Slashing) return;
+
+        // CharacterController が有効なままだと、位置を直接変えても次の移動で元に戻されることがある
+        bool wasEnabled = characterController.enabled;
+        characterController.enabled = false;
+        transform.position = position;
+        characterController.enabled = wasEnabled;
+    }
+
     // ---- 入力 ----
 
     bool WasPlantPressed() => plantAction != null && plantAction.action.WasPressedThisFrame();
