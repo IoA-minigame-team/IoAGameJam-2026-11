@@ -40,6 +40,8 @@ public sealed class MeiManager : MonoBehaviour
         GameContext.MeiStats = state;
         GameEvents.EnemyFell += OnEnemyFell;
         GameEvents.WaveCleared += OnWaveCleared;
+        // 待っている間に無効にされていたら、残っている要求をここで出し直す(そのままだと次の要求が来るまで開かない)
+        if (pending.Count > 0 && openRoutine == null) openRoutine = StartCoroutine(OpenWhenReady());
     }
 
     void OnDisable()

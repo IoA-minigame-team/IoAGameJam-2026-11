@@ -64,6 +64,8 @@ public sealed class MeiSelectWindow : MonoBehaviour
             cardIndex++;
         }
         for (int i = cardIndex; i < cards.Length; i++) cards[i].gameObject.SetActive(false);
+        // 大銘の候補が「残す」だけのときも、ゲームパッドで選べるよう「残す」を選んだ状態にする
+        if (first == null && keepCard.gameObject.activeSelf) first = keepCard.gameObject;
 
         TimeController.RequestPause(this);
         IsOpen = true;

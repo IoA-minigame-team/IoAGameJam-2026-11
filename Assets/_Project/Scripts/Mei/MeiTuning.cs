@@ -85,13 +85,16 @@ public sealed class MeiTuning : ScriptableObject
         }
     }
 
+    // 選択画面(MeiSceneBuilder)が作るカードの数。これより多く抽選すると、選べない候補が出てしまう
+    public const int MAX_CANDIDATES = 3;
+
     [Header("小銘")]
     [Tooltip("場外に落とした数がこの数に達するたびに、小銘の候補が出る")]
     [SerializeField, Min(1)] int fallsPerMinorChoice = 15;
     [Tooltip("同じ小銘を重ねられる最大の段数")]
     [SerializeField, Min(1)] int maxStage = 3;
-    [Tooltip("一度に並べる候補の数")]
-    [SerializeField, Min(1)] int candidateCount = 3;
+    [Tooltip("一度に並べる候補の数。選択画面のカードは3枚なので、3 より多くはできない")]
+    [SerializeField, Range(1, MAX_CANDIDATES)] int candidateCount = 3;
     [SerializeField]
     MinorMeiDef[] minorMeis =
     {
@@ -133,7 +136,7 @@ public sealed class MeiTuning : ScriptableObject
 
     public int FallsPerMinorChoice => fallsPerMinorChoice;
     public int MaxStage => maxStage;
-    public int CandidateCount => candidateCount;
+    public int CandidateCount => Mathf.Clamp(candidateCount, 1, MAX_CANDIDATES);
     public MinorMeiDef[] MinorMeis => minorMeis;
     public MajorMeiDef[] MajorMeis => majorMeis;
     public bool OfferMajorMei => offerMajorMei;
