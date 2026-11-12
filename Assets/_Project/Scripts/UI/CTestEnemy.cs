@@ -20,6 +20,8 @@ public sealed class CTestEnemy : MonoBehaviour, ILaunchable
     bool flying;
     bool falling;
     float fallSpeed;
+    // 色を変えるために複製したマテリアル。敵を消すときに一緒に消さないと残り続ける
+    Material bodyMaterial;
 
     public Transform Transform => transform;
     public Vector3 Position => transform.position;
@@ -37,10 +39,20 @@ public sealed class CTestEnemy : MonoBehaviour, ILaunchable
         body.transform.SetParent(root.transform, false);
         body.transform.localPosition = new Vector3(0f, 0.9f, 0f);
         body.transform.localScale = new Vector3(0.8f, 0.9f, 0.8f);
-        body.GetComponent<Renderer>().material.color = new Color(0.1f, 0.1f, 0.12f);
         CTestEnemy enemy = root.AddComponent<CTestEnemy>();
         enemy.islandRadius = radius;
+        Renderer bodyRenderer = body.GetComponent<Renderer>();
+        if (bodyRenderer != null)
+        {
+            enemy.bodyMaterial = bodyRenderer.material;
+            enemy.bodyMaterial.color = new Color(0.1f, 0.1f, 0.12f);
+        }
         return enemy;
+    }
+
+    void OnDestroy()
+    {
+        if (bodyMaterial != null) Destroy(bodyMaterial);
     }
 
     public void Launch(Vector3 launchVelocity, int id)

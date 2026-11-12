@@ -141,7 +141,7 @@ MonoBehaviour:
     lifetime: 2
   boltCoreMaterial: {fileID: 2100000, guid: 269a3389a5758d144ab50da64dc2b516, type: 2}
   boltRimMaterial: {fileID: 2100000, guid: d970aedc407b75045ad3de8d58c0d4c8, type: 2}
-  ringMaterial: {fileID: 0}
+  ringMaterial: {fileID: 2100000, guid: bba74c886ecf16e42a039e70c6f5b6a7, type: 2}
   glowColor: {r: 1, g: 1, b: 1, a: 1}
   glowStrength: 0.6
   trailMinSpeed: 2.2
@@ -156,6 +156,12 @@ MonoBehaviour:
   flickerBase: 0.06
   flickerPerSwarm: 0.13
   flickerMax: 0.75
+  carriedLightRatio: 0.35
+  swordLightHeight: 0.8
+  swordLightRange: 8
+  timerRingRadius: 1.6
+  timerUrgentSeconds: 1
+  ringWobble: 0.06
   lureRadius: 10
   autoReturnBase: 3
   autoReturnPerSwarm: 0.3

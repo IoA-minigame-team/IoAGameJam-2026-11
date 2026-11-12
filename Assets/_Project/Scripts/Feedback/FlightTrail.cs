@@ -35,7 +35,8 @@ public sealed class FlightTrail : MonoBehaviour
         lastPosition = position;
         float speed = velocity.magnitude;
 
-        if (speed < tuning.TrailMinSpeed)
+        // 止まっているとき(速さ 0)も遅いときと同じに扱う。TrailMinSpeed を 0 にしても 0 で割らないため
+        if (speed <= 0f || speed < tuning.TrailMinSpeed)
         {
             slowTime += dt;
             if (slowTime > STOP_AFTER_SLOW) enabled = false;

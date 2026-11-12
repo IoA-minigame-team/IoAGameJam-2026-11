@@ -21,7 +21,9 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
 
     AudioSource[] voices;
     // それぞれの声を鳴らし始めた実時間。全部が鳴っているときに、いちばん前に鳴らし始めたものを止めるため
-    float[] voiceStartedAt;
+    // 鳴らし始めた順番(大きいほど新しい)。時刻だと同じフレームで鳴らした音が同じ値になり、古さを比べられないため連番にする
+    long[] voiceStartedOrder;
+    long playCount;
     int nextVoice;
 
     // 一振りの中で何回目の当たりの音か、何回目の縁を越える音か。斬り抜けが始まるたびに 0 に戻し、数に応じて音を高くする
@@ -38,7 +40,7 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     {
         // 1つの AudioSource で1つの音を鳴らす。PlayOneShot だと、後から pitch を変えたときに鳴っている音まで変わってしまうため
         voices = new AudioSource[voiceCount];
-        voiceStartedAt = new float[voiceCount];
+        voiceStartedOrder = new long[voiceCount];
         for (int i = 0; i < voiceCount; i++)
         {
             AudioSource source = gameObject.AddComponent<AudioSource>();
@@ -133,7 +135,7 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
 
         int index = PickVoice();
         AudioSource source = voices[index];
-        voiceStartedAt[index] = Time.unscaledTime;
+        voiceStartedOrder[index] = ++playCount;
         source.clip = clip;
         source.volume = entry.Volume;
         source.pitch = pitch * (1f + Random.Range(-entry.PitchJitter, entry.PitchJitter));
@@ -143,7 +145,7 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     /// <summary>
     /// 鳴らす AudioSource の番号を選ぶ。まず鳴り終わっているものを探し、全部鳴っているときだけ、いちばん前に鳴らし始めたものを止めて使う。
     /// 順番だけで選ぶと、空きがあるのに長い音(雷など)を途中で切ってしまうため。
-    /// 古さは鳴らし始めた時刻で比べる(空きを使うと順番と鳴らした順がずれるので、順番では古さが分からない)
+    /// 古さは鳴らし始めた連番で比べる(空きを使うと順番と鳴らした順がずれるので、順番では古さが分からない)
     /// </summary>
     int PickVoice()
     {
@@ -157,7 +159,7 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         int oldest = 0;
         for (int i = 1; i < voices.Length; i++)
         {
-            if (voiceStartedAt[i] < voiceStartedAt[oldest]) oldest = i;
+            if (voiceStartedOrder[i] < voiceStartedOrder[oldest]) oldest = i;
         }
         nextVoice = (oldest + 1) % voices.Length;
         return oldest;
