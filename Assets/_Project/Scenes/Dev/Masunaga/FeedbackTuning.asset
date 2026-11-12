@@ -32,14 +32,116 @@ MonoBehaviour:
   - "\u76FE\u6301\u3061\u306F\u6B63\u9762\u304B\u3089\u98DB\u3070\u306A\u3044\u3002\u80CC\u5F8C\u306B\u523A\u3059"
   - "\u5168\u7A2E\u304C\u6DF7\u3056\u308B"
   - "\u6700\u5F8C\u306E\u6CE2\u3002\u91CD\u306D\u305F\u9298\u3067\u3001\u4E00\u632F\u308A\u306B\u5927\u91CF\u306B"
-  seEntries: []
+  seEntries:
+  - id: 14
+    clips:
+    - {fileID: 8300000, guid: d99dd0992c474f143a3959b3ffb7a701, type: 3}
+    volume: 0.7
+    pitchJitter: 0.03
+  - id: 7
+    clips:
+    - {fileID: 8300000, guid: f532dd533971c8c4abfb71364bb79ce9, type: 3}
+    volume: 0.55
+    pitchJitter: 0.03
+  - id: 8
+    clips:
+    - {fileID: 8300000, guid: 6610feca64e834c4c97f04c246281192, type: 3}
+    volume: 0.3
+    pitchJitter: 0.03
+  - id: 3
+    clips:
+    - {fileID: 8300000, guid: daeb5fea71bfc1749a7749bc1763509f, type: 3}
+    volume: 0.75
+    pitchJitter: 0.01
+  - id: 12
+    clips:
+    - {fileID: 8300000, guid: c0aeff9d90897d3409e0b1cab296adde, type: 3}
+    volume: 0.5
+    pitchJitter: 0.03
+  - id: 13
+    clips:
+    - {fileID: 8300000, guid: 46748631023fff34a8b2413d0ee26bff, type: 3}
+    volume: 0.55
+    pitchJitter: 0.03
+  - id: 6
+    clips:
+    - {fileID: 8300000, guid: 75bd929ad44e36a46900490ca240c7f7, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 4
+    clips:
+    - {fileID: 8300000, guid: 256945cb3e49e8d4a84e3d6083202fa2, type: 3}
+    volume: 0.45
+    pitchJitter: 0.03
+  - id: 18
+    clips:
+    - {fileID: 8300000, guid: 76b0362c98cb9cc4b9958349d7588064, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 17
+    clips:
+    - {fileID: 8300000, guid: 966440a2648cd6e438542e0706d181dc, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 2
+    clips:
+    - {fileID: 8300000, guid: 0c952be291060ae4eb1bcd8f3accd511, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 1
+    clips:
+    - {fileID: 8300000, guid: 66d81b7241846a74c96c621df9568d23, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 9
+    clips:
+    - {fileID: 8300000, guid: ff2fee5316b9b8f49b527aa2f4f618e6, type: 3}
+    volume: 0.4
+    pitchJitter: 0.03
+  - id: 10
+    clips:
+    - {fileID: 8300000, guid: 27d95559444fa334894c636fe23a184b, type: 3}
+    volume: 0.8
+    pitchJitter: 0.03
+  - id: 15
+    clips:
+    - {fileID: 8300000, guid: b2de402b37ffc1d429a1549a99a9973f, type: 3}
+    volume: 0.3
+    pitchJitter: 0.03
+  - id: 16
+    clips:
+    - {fileID: 8300000, guid: 170d76e66cfbec74abc676e244290169, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 5
+    clips:
+    - {fileID: 8300000, guid: 5c8e1f733186bb0499d924ede5f54bba, type: 3}
+    volume: 0.6
+    pitchJitter: 0.03
+  - id: 11
+    clips:
+    - {fileID: 8300000, guid: c28cfb7768dae9245af364cded880e48, type: 3}
+    volume: 0.4
+    pitchJitter: 0.03
   hitPitchSemitones: 00000000020000000400000007000000090000000c0000000e00000010000000
   hitSeInterval: 0.055
   edgeCrossSemitonePerFall: 1
-  vfxEntries: []
+  vfxEntries:
+  - id: 1
+    prefab: {fileID: 4485221808426005827, guid: d68890ce255ae5a4f89d51838e42d467, type: 3}
+    lifetime: 1
+  - id: 2
+    prefab: {fileID: 3150189919932176524, guid: ccf22c864f94fb545a173540ec5daadc, type: 3}
+    lifetime: 1
+  - id: 3
+    prefab: {fileID: 1717094691944200412, guid: 280e23e039d1d2541b929c03aed80771, type: 3}
+    lifetime: 1
+  - id: 4
+    prefab: {fileID: 8785563691862744049, guid: 2eb748bb435d03543aedccc60b3e9f98, type: 3}
+    lifetime: 2
   boltCoreMaterial: {fileID: 0}
   boltRimMaterial: {fileID: 0}
-  ringMaterial: {fileID: 0}
+  ringMaterial: {fileID: 2100000, guid: bba74c886ecf16e42a039e70c6f5b6a7, type: 2}
   glowColor: {r: 1, g: 1, b: 1, a: 1}
   glowStrength: 0.6
   trailMinSpeed: 2.2
@@ -54,6 +156,12 @@ MonoBehaviour:
   flickerBase: 0.06
   flickerPerSwarm: 0.13
   flickerMax: 0.75
+  carriedLightRatio: 0.35
+  swordLightHeight: 0.8
+  swordLightRange: 8
+  timerRingRadius: 1.6
+  timerUrgentSeconds: 1
+  ringWobble: 0.06
   lureRadius: 10
   autoReturnBase: 3
   autoReturnPerSwarm: 0.3

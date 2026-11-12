@@ -164,6 +164,7 @@ public static class EnemyActionAssetSetup
         var serialized = new SerializedObject(driver);
         serialized.FindProperty("animator").objectReferenceValue = animator;
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        EnemyLaunchAssetSetup.ConfigureEnemy(root, name);
         int layer = LayerMask.NameToLayer("Enemy");
         if (layer >= 0) foreach (var t in root.GetComponentsInChildren<Transform>()) t.gameObject.layer = layer;
         PrefabUtility.SaveAsPrefabAsset(root, ROOT + "Prefabs/" + name + ".prefab");

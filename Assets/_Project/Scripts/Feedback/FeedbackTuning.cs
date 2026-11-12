@@ -130,8 +130,21 @@ public sealed class FeedbackTuning : ScriptableObject
     [Tooltip("灯喰らい1体ごとに足す揺らぎ")]
     [SerializeField, Min(0f)] float flickerPerSwarm = 0.13f;
     [SerializeField, Min(0f)] float flickerMax = 0.75f;
-    // 下の3つは本来 EnemyTuning(三條さん)の値。残り時間を GameContext から読めるようになったら消す
-    [Tooltip("仮:灯喰らいの引き寄せ範囲(m)。光の輪の大きさに使う")]
+    [Tooltip("刀を持って走っている間の光の強さ(置いたときを 1 とした割合)。置いた刀のほうが目立つようにする")]
+    [SerializeField, Range(0f, 1f)] float carriedLightRatio = 0.35f;
+    [Tooltip("光を置く高さ(m)。刀の柄のあたり")]
+    [SerializeField, Min(0f)] float swordLightHeight = 0.8f;
+    [Tooltip("光が届く距離(m)")]
+    [SerializeField, Min(0.1f)] float swordLightRange = 8f;
+    [Tooltip("残り時間の輪の、置いた直後の大きさ(m)。残りが減るほど刀へ縮む")]
+    [SerializeField, Min(0.1f)] float timerRingRadius = 1.6f;
+    [Tooltip("残りがこの秒数を切ったら、残り時間の輪を点滅させる")]
+    [SerializeField, Min(0f)] float timerUrgentSeconds = 1f;
+    [Tooltip("群がりで光の輪の大きさも揺らす割合。揺らぎ 1 のとき、半径がこの割合だけ増減する")]
+    [SerializeField, Range(0f, 0.3f)] float ringWobble = 0.06f;
+    // 下の引き寄せ範囲は三條さんの EnemyTuning.LureRadius と同じ値にする(他担当のクラスを直接読まないため、ここに写している)
+    // 自動で斬り戻すまでの3つは、GameContext.AutoReturnLimit が 0 のとき(主人公がいないテスト用のシーン)だけ使う
+    [Tooltip("灯喰らいの引き寄せ範囲(m)。光の輪の大きさに使う。三條さんの EnemyTuning と同じ値にする")]
     [SerializeField, Min(0f)] float lureRadius = 10f;
     [Tooltip("仮:自動で斬り戻すまでの時間(秒)")]
     [SerializeField, Min(0f)] float autoReturnBase = 3f;
@@ -187,6 +200,12 @@ public sealed class FeedbackTuning : ScriptableObject
     public float FlickerBase => flickerBase;
     public float FlickerPerSwarm => flickerPerSwarm;
     public float FlickerMax => flickerMax;
+    public float CarriedLightRatio => carriedLightRatio;
+    public float SwordLightHeight => swordLightHeight;
+    public float SwordLightRange => swordLightRange;
+    public float TimerRingRadius => timerRingRadius;
+    public float TimerUrgentSeconds => timerUrgentSeconds;
+    public float RingWobble => ringWobble;
     public float LureRadius => lureRadius;
     public float AutoReturnBase => autoReturnBase;
     public float AutoReturnPerSwarm => autoReturnPerSwarm;
