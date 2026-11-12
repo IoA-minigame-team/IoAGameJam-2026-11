@@ -152,7 +152,8 @@ public sealed class SlashCinematic : MonoBehaviour
 
             case Phase.SheatheHold:
                 phaseTimer -= dt;
-                if (phaseTimer <= 0f) BeginBlendBack();
+                // 納刀の鍔が鳴る瞬間までは寄りで映す。スローで納刀が遅れても、締めを見せてから戻るため
+                if (phaseTimer <= 0f && !player.IsSheathePending) BeginBlendBack();
                 break;
 
             case Phase.BlendBack:
