@@ -7,6 +7,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "PlayerTuning", menuName = "Hitofuri/PlayerTuning")]
 public sealed class PlayerTuning : ScriptableObject
 {
+    // 演出のスロー倍率の下限。0 だと Time.deltaTime で進む斬り抜けと硬直が止まり、
+    // 演出は硬直の終わりを待ってからスローを解くので、操作できないまま固まる
+    const float MIN_CINEMATIC_SLOW_SCALE = 0.05f;
+
     [Header("移動")]
     // 仕様に「通常の速度」の数値はないので仮の値
     [SerializeField, Min(0f)] float moveSpeed = 5f;
@@ -70,7 +74,7 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0f)] float cinematicBlendBack = 0.3f;
     // 演出中のスロー倍率と演出後の無敵は「テストで決める」なので仮の値
     [Tooltip("演出中の時間の倍率。離した瞬間から見下ろしへ戻り始めるまで")]
-    [SerializeField, Range(0f, 1f)] float cinematicSlowScale = 0.3f;
+    [SerializeField, Range(MIN_CINEMATIC_SLOW_SCALE, 1f)] float cinematicSlowScale = 0.3f;
     [Tooltip("見下ろしへ戻り終えてからの無敵(秒)。演出の始まりから戻り終えるまでも無敵")]
     [SerializeField, Min(0f)] float postCinematicInvincible = 0.5f;
     // 定点カメラの置き場所は仕様で「任せる」なので仮の値。終点と斬り抜ける向きだけから決め、ステージの形には頼らない
@@ -142,7 +146,8 @@ public sealed class PlayerTuning : ScriptableObject
     public float HitStopMax => hitStopMax;
     public int CinematicThreshold => cinematicThreshold;
     public float CinematicBlendBack => cinematicBlendBack;
-    public float CinematicSlowScale => cinematicSlowScale;
+    // Range はインスペクターでしか効かず、アセットに 0 が残っていても通るので、読み出しでも下限で切る
+    public float CinematicSlowScale => Mathf.Clamp(cinematicSlowScale, MIN_CINEMATIC_SLOW_SCALE, 1f);
     public float PostCinematicInvincible => postCinematicInvincible;
     public float CinematicCameraDistance => cinematicCameraDistance;
     public float CinematicCameraAngle => cinematicCameraAngle;
