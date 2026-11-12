@@ -11,6 +11,9 @@ GameObject:
   - component: {fileID: 3358511251431106828}
   - component: {fileID: 8182467864864327014}
   - component: {fileID: 7686146551096406467}
+  - component: {fileID: 6989603177332888462}
+  - component: {fileID: 1306014542668940810}
+  - component: {fileID: 6404930894154141413}
   m_Layer: 8
   m_Name: FloatingShadowEnemy
   m_TagString: Untagged
@@ -31,7 +34,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4958328342488868095}
+  - {fileID: 3355108643347810804}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &8182467864864327014
@@ -71,13 +74,91 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyActionAnimation
   animator: {fileID: 1310452452137451141}
   transitionDuration: 0.08
+  reactionPivot: {fileID: 3355108643347810804}
+  reactionTuning: {fileID: 11400000, guid: 6732d91dfba979847b21a8b5c2dff170, type: 2}
+--- !u!114 &6989603177332888462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 243820175435427458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec061a020dbd9474ba06f9def13dc948, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  tuning: {fileID: 11400000, guid: 6732d91dfba979847b21a8b5c2dff170, type: 2}
+  bodyCollider: {fileID: 8182467864864327014}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  movementObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4
+--- !u!114 &1306014542668940810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 243820175435427458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39d57c400c398c44e89d74715ec5c0fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyPursuit
+--- !u!114 &6404930894154141413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 243820175435427458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 294e9fa1d82dbad459c91856567fe79d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAutoAttack
+--- !u!1 &4969555957716005659
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3355108643347810804}
+  m_Layer: 0
+  m_Name: ReactionPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3355108643347810804
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4969555957716005659}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4958328342488868095}
+  m_Father: {fileID: 3358511251431106828}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &4847346708166837012
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 3358511251431106828}
+    m_TransformParent: {fileID: 3355108643347810804}
     m_Modifications:
     - target: {fileID: -9060822388791753490, guid: 89e92a21af552724d800865f386e2589, type: 3}
       propertyPath: m_Layer

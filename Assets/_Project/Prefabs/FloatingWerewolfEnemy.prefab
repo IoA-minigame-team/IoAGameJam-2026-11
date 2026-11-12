@@ -11,6 +11,9 @@ GameObject:
   - component: {fileID: 2500046743767212679}
   - component: {fileID: 3117247250037022636}
   - component: {fileID: 5040681305836794774}
+  - component: {fileID: 4918877389962596631}
+  - component: {fileID: 1590861750956258369}
+  - component: {fileID: 4355527115281135778}
   m_Layer: 8
   m_Name: FloatingWerewolfEnemy
   m_TagString: Untagged
@@ -31,7 +34,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 9169577242424088895}
+  - {fileID: 3523593066614742363}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &3117247250037022636
@@ -71,13 +74,91 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyActionAnimation
   animator: {fileID: 2999623026159141701}
   transitionDuration: 0.08
+  reactionPivot: {fileID: 3523593066614742363}
+  reactionTuning: {fileID: 11400000, guid: 3842f897778dc3944abc1b8c8472975e, type: 2}
+--- !u!114 &4918877389962596631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5953686082908907121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec061a020dbd9474ba06f9def13dc948, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  tuning: {fileID: 11400000, guid: 3842f897778dc3944abc1b8c8472975e, type: 2}
+  bodyCollider: {fileID: 3117247250037022636}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  movementObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4
+--- !u!114 &1590861750956258369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5953686082908907121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39d57c400c398c44e89d74715ec5c0fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyPursuit
+--- !u!114 &4355527115281135778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5953686082908907121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 294e9fa1d82dbad459c91856567fe79d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAutoAttack
+--- !u!1 &8501242104001647674
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3523593066614742363}
+  m_Layer: 0
+  m_Name: ReactionPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3523593066614742363
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8501242104001647674}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 9169577242424088895}
+  m_Father: {fileID: 2500046743767212679}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &8703866631611023060
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2500046743767212679}
+    m_TransformParent: {fileID: 3523593066614742363}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: eba4ed43906230348ab841d7cf251cd1, type: 3}
       propertyPath: m_LocalScale.x

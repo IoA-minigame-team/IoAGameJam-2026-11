@@ -14,6 +14,7 @@ using Object = UnityEngine.Object;
 [InitializeOnLoad]
 public static class EnemyActionPlayModeChecks
 {
+    static bool running;
     const string KEY = "Sanjo.EnemyActionChecks";
     static readonly string WORK = OutputDirectory();
     static EnemyActionAnimation[] actors;
@@ -50,9 +51,16 @@ public static class EnemyActionPlayModeChecks
 
     static void OnState(PlayModeStateChange state)
     {
+        // 手動停止は失敗終了と分ける。Editorを閉じず、次の通常Playへ検証を持ち越さない。
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (running || SessionState.GetBool(KEY, false)) Cleanup();
+            return;
+        }
         if (!SessionState.GetBool(KEY, false)) return;
         if (state == PlayModeStateChange.EnteredPlayMode)
         {
+            running = true;
             actors = Object.FindObjectsByType<EnemyActionAnimation>(FindObjectsSortMode.None).OrderBy(x => x.transform.position.x).ToArray();
             animators = actors.Select(x => x.GetComponentInChildren<Animator>()).ToArray();
             roots = actors.Select(x => x.transform.position).ToArray();
@@ -79,6 +87,8 @@ public static class EnemyActionPlayModeChecks
 
     static void Update()
     {
+        // 同じEditor更新で停止が通知された場合も、破棄されたシーンへ触れない。
+        if (!running || !EditorApplication.isPlaying) return;
         if (!EditorApplication.isPlaying) return;
         try
         {
@@ -174,11 +184,20 @@ public static class EnemyActionPlayModeChecks
         finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(rt); }
     }
 
-    static void Finish(Exception error)
+    /// <summary>通常完了と手動停止で共有する後始末。ここでは結果の保存やEditor終了を行わない。</summary>
+    static void Cleanup()
     {
         EditorApplication.update -= Update;
         GameEvents.GameOver -= CountGameOver;
-        SessionState.SetBool(KEY, false);
+        SessionState.EraseBool(KEY);
+        actors = null; animators = null; roots = null; idleArm = null; demo = null; manager = null;
+        running = false;
+    }
+
+    static void Finish(Exception error)
+    {
+        if (!running) return;
+        Cleanup();
         string report = (error == null ? "PASS" : "FAIL: " + error) + "\n" + string.Join("\n", results);
         File.WriteAllText(WORK + "playmode-result.txt", report);
         if (error != null) Debug.LogException(error); else Debug.Log("ENEMY_ACTION_PLAYMODE_PASS " + results.Count + " checks");
