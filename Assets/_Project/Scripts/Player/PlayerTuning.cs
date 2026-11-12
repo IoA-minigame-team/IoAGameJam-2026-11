@@ -46,6 +46,24 @@ public sealed class PlayerTuning : ScriptableObject
     [Tooltip("線の端で当たったときの吹き飛ばし力の割合。中央で 1")]
     [SerializeField, Range(0f, 1f)] float edgePowerRatio = 0.5f;
 
+    [Header("玉突き")]
+    // 玉突きは仕様で判定方法を任されている。値はすべて仮で、手触りを見ながら決める
+    [Tooltip("玉突きを起こすか。手触りを比べるための切り替え")]
+    [SerializeField] bool tamatsukiEnabled = true;
+    [Tooltip("飛んでいる敵の当たりの半径(m)")]
+    [SerializeField, Min(0.01f)] float tamatsukiRadius = 0.6f;
+    [Tooltip("当たりのカプセルの高さ(m)。敵の背丈を覆う")]
+    [SerializeField, Min(0f)] float tamatsukiBodyHeight = 1.6f;
+    // 1 未満にしておけば、玉突きが何段続いても必ずどこかで止まる
+    [Tooltip("当てた敵の速さを何割渡すか")]
+    [SerializeField, Range(0f, 1f)] float tamatsukiTransferRatio = 0.7f;
+    [Tooltip("飛ぶ向き。0 で当てた敵の進む向き、1 で両者の中心を結ぶ向き")]
+    [SerializeField, Range(0f, 1f)] float tamatsukiAimBlend = 0.5f;
+    [Tooltip("これより遅い敵は当たっても飛ばさない(m/s)。止まりかけの敵がつついて飛ばすのを防ぐ")]
+    [SerializeField, Min(0f)] float tamatsukiMinSpeed = 2f;
+    [Tooltip("飛んだ敵を玉突きのために追う時間の上限(秒)")]
+    [SerializeField, Min(0f)] float tamatsukiMaxTrackTime = 3f;
+
     [Header("自動の斬り戻し")]
     // パラメータ表では EnemyTuning だが、数えるのは主人公側なのでここに置く(朝会で共有)
     [Tooltip("突き立ててから自動で斬り戻すまでの時間(秒)")]
@@ -172,6 +190,13 @@ public sealed class PlayerTuning : ScriptableObject
     public float LengthBonusPerMeter => lengthBonusPerMeter;
     public float EdgeDeflectAngle => edgeDeflectAngle;
     public float EdgePowerRatio => edgePowerRatio;
+    public bool TamatsukiEnabled => tamatsukiEnabled;
+    public float TamatsukiRadius => tamatsukiRadius;
+    public float TamatsukiBodyHeight => tamatsukiBodyHeight;
+    public float TamatsukiTransferRatio => tamatsukiTransferRatio;
+    public float TamatsukiAimBlend => tamatsukiAimBlend;
+    public float TamatsukiMinSpeed => tamatsukiMinSpeed;
+    public float TamatsukiMaxTrackTime => tamatsukiMaxTrackTime;
     public float AutoReturnTime => autoReturnTime;
     public float AutoReturnReductionPerSwarm => autoReturnReductionPerSwarm;
     public float AutoReturnMinTime => autoReturnMinTime;
