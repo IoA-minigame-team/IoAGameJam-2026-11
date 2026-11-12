@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d42230ea6d6e09c469a15f9993885832, type: 3}
   m_Name: MeiTuning
   m_EditorClassIdentifier: Assembly-CSharp::MeiTuning
-  fallsPerMinorChoice: 15
+  fallsPerMinorChoice: 4
   maxStage: 3
   candidateCount: 3
   minorMeis:
@@ -71,7 +71,7 @@ MonoBehaviour:
   - stat: 1
     max: 2.5
   defaultCap: 2
-  offerMajorMei: 0
+  offerMajorMei: 1
   majorMeis:
   - id: 2
     displayName: "\u8FD4\u3057"
