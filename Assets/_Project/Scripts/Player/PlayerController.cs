@@ -431,7 +431,8 @@ public sealed class PlayerController : MonoBehaviour
         target.Enemy.Launch(target.Velocity, currentSlashId);
         GameEvents.RaiseEnemyHit(new EnemyHitInfo(currentSlashId, target.Enemy, target.Velocity, target.Frontness));
         Feedback.PlaySe(SeId.Hit, position);
-        Feedback.SpawnVfx(VfxId.Hit, position, Quaternion.identity);
+        // 敵の原点は足元なので、体の高さに出して地面に埋まらないようにする
+        Feedback.SpawnVfx(VfxId.Hit, position + Vector3.up * tuning.HitVfxHeight, Quaternion.identity);
     }
 
     // 1体ごとに止めて揺らす。止まっている間は slashElapsed が進まないので、斬り抜けが「当たって、止まって、進む」の繰り返しになる

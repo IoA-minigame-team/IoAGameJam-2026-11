@@ -81,6 +81,8 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0f)] float hitShakeChain = 0.12f;
     [Tooltip("当たりの揺れの長さ(秒)")]
     [SerializeField, Min(0f)] float hitShakeDuration = 0.12f;
+    [Tooltip("当たりのエフェクトを敵の位置からどれだけ上に出すか(m)。敵の原点は足元なので、そのままだと地面に埋まる")]
+    [SerializeField] float hitVfxHeight = 1f;
 
     [Header("納刀")]
     // 仕様は「納刀音と小さなヒットストップ」だけで値はないので仮の値
@@ -182,6 +184,7 @@ public sealed class PlayerTuning : ScriptableObject
     public float HitShakeFirst => hitShakeFirst;
     public float HitShakeChain => hitShakeChain;
     public float HitShakeDuration => hitShakeDuration;
+    public float HitVfxHeight => hitVfxHeight;
     public float SheatheClickDelay => sheatheClickDelay;
     public float SheatheHitStop => sheatheHitStop;
     public float AfterimageSpacing => afterimageSpacing;

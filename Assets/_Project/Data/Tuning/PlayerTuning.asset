@@ -40,6 +40,7 @@ MonoBehaviour:
   hitShakeFirst: 0.25
   hitShakeChain: 0.12
   hitShakeDuration: 0.12
+  hitVfxHeight: 1
   sheatheClickDelay: 0.5
   sheatheHitStop: 0.06
   afterimageSpacing: 0.8
