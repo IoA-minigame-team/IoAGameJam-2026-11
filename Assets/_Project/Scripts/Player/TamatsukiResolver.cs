@@ -134,23 +134,33 @@ public sealed class TamatsukiResolver : MonoBehaviour
                 to + bottom, to + top, radius, colliderBuffer, enemyMask, QueryTriggerInteraction.Collide);
             for (int i = 0; i < count; i++)
             {
-                TryLaunch(flyer, to, colliderBuffer[i]);
+                TryLaunch(flyer, to, colliderBuffer[i], true);
                 colliderBuffer[i] = null;
             }
         }
         else
         {
+            Vector3 moveDirection = move / distance;
             int count = Physics.CapsuleCastNonAlloc(
-                from + bottom, from + top, radius, move / distance, hitBuffer, distance, enemyMask, QueryTriggerInteraction.Collide);
+                from + bottom, from + top, radius, moveDirection, hitBuffer, distance, enemyMask, QueryTriggerInteraction.Collide);
             for (int i = 0; i < count; i++)
             {
-                TryLaunch(flyer, to, hitBuffer[i].collider);
+                RaycastHit hit = hitBuffer[i];
                 hitBuffer[i] = default;
+                // 掃引の始めから重なっていた相手は、距離 0 で接触点が原点になる(Unity の掃引の仕様)
+                bool overlappedAtStart = hit.distance <= 0f && hit.point == Vector3.zero;
+                // 向きは終点ではなく接触した瞬間の位置で決める。終点で見ると、1フレームで追い越した相手が後ろにいることになるため
+                Vector3 contactPosition = from + moveDirection * hit.distance;
+                TryLaunch(flyer, contactPosition, hit.collider, overlappedAtStart);
             }
         }
     }
 
-    void TryLaunch(Flyer flyer, Vector3 flyerPosition, Collider collider)
+    /// <summary>
+    /// flyerPosition は当てた敵の、接触した瞬間の位置。
+    /// overlappedAtStart は調べ始めた時点ですでに重なっていた相手か(掃引で近づいて当たった相手ではない)
+    /// </summary>
+    void TryLaunch(Flyer flyer, Vector3 flyerPosition, Collider collider, bool overlappedAtStart)
     {
         ILaunchable target = GetLaunchable(collider);
         if (target == null || ReferenceEquals(target, flyer.Enemy) || IsGone(target)) return;
@@ -165,8 +175,13 @@ public sealed class TamatsukiResolver : MonoBehaviour
 
         Vector3 toTarget = Flatten(target.Position - flyerPosition);
         Vector3 centerDirection = toTarget.sqrMagnitude > 0.000001f ? toTarget.normalized : flyerDirection;
-        // 掃引の始めで重なっていた後ろの敵は、追い越した相手なので飛ばさない
-        if (Vector3.Dot(centerDirection, flyerDirection) <= 0f) return;
+        if (Vector3.Dot(centerDirection, flyerDirection) <= 0f)
+        {
+            // 初めから重なっていて後ろにいる相手は、もう追い越した相手なので飛ばさない
+            if (overlappedAtStart) return;
+            // 掃引で当たったのに中心が横か後ろにある(体の縁がかすった)ときは、後ろへ飛ばさないよう進む向きで押す
+            centerDirection = flyerDirection;
+        }
 
         Vector3 direction = Vector3.Slerp(flyerDirection, centerDirection, tuning.TamatsukiAimBlend);
         direction.y = 0f;
