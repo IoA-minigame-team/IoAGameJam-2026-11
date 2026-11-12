@@ -23,7 +23,6 @@ public sealed class MeiTestDriver : MonoBehaviour
     readonly List<GameObject> targets = new List<GameObject>();
     int wave;
     int testSlashId = TEST_SLASH_ID_START;
-    MajorMeiId testMajor = MajorMeiId.None;
 
     void Update()
     {
@@ -44,10 +43,11 @@ public sealed class MeiTestDriver : MonoBehaviour
             GameEvents.RaiseWaveCleared(wave);
         }
         // 0:選択画面を通さずに「震」を刻んだことにする(もう一度押すと外す)
-        if (k.digit0Key.wasPressedThisFrame)
+        // 今の大銘は MeiManager の状態から読む。選択画面で刻んだ震とも、ずれないようにするため
+        if (k.digit0Key.wasPressedThisFrame && meiManager != null)
         {
-            testMajor = testMajor == MajorMeiId.Shin ? MajorMeiId.None : MajorMeiId.Shin;
-            GameEvents.RaiseMajorMeiChanged(testMajor);
+            bool hasShin = meiManager.State.Major == MajorMeiId.Shin;
+            meiManager.SetMajorForTest(hasShin ? MajorMeiId.None : MajorMeiId.Shin);
         }
         // Y:周りに試しの敵を置き直す
         if (k.yKey.wasPressedThisFrame) PlaceTargets();
@@ -55,14 +55,19 @@ public sealed class MeiTestDriver : MonoBehaviour
         if (k.uKey.wasPressedThisFrame)
         {
             testSlashId++;
-            Vector3 here = transform.position;
+            Vector3 here = TestCenter();
             GameEvents.RaiseSlashStarted(new SlashStartedInfo(testSlashId, here, here));
             GameEvents.RaiseSlashFinished(new SlashFinishedInfo(testSlashId, 0));
         }
     }
 
+    /// <summary>震が押し出す中心と同じ所(ShinEffect と同じ決め方)。主人公がいれば主人公、いなければこのオブジェクトの位置</summary>
+    Vector3 TestCenter() => GameContext.PlayerTransform != null ? GameContext.PlayerTransform.position : transform.position;
+
     void PlaceTargets()
     {
+        if (meiManager == null || meiManager.Tuning == null) return;
+        Vector3 center = TestCenter();
         foreach (GameObject t in targets) if (t != null) Destroy(t);
         targets.Clear();
         int layer = LayerMask.NameToLayer("Enemy");
@@ -70,13 +75,13 @@ public sealed class MeiTestDriver : MonoBehaviour
         {
             float angle = 360f * i / targetCount + Random.Range(-10f, 10f);
             float distance = Random.Range(targetMinDistance, targetMaxDistance);
-            Vector3 pos = transform.position + Quaternion.Euler(0f, angle, 0f) * Vector3.forward * distance;
+            Vector3 pos = center + Quaternion.Euler(0f, angle, 0f) * Vector3.forward * distance;
             GameObject t = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             t.name = "MeiTestTarget";
             t.transform.position = pos + Vector3.up;
             t.transform.localScale = new Vector3(0.6f, 0.5f, 0.6f);
             if (layer >= 0) t.layer = layer;
-            t.AddComponent<MeiTestTarget>();
+            t.AddComponent<MeiTestTarget>().Configure(meiManager.Tuning);
             targets.Add(t);
         }
     }
@@ -91,7 +96,7 @@ public sealed class MeiTestDriver : MonoBehaviour
             "7: 小銘の選択画面をすぐ開く\n" +
             $"8: {fallsPerPress}体落としたことにする\n" +
             "9: ウェーブをクリアしたことにする\n" +
-            $"0: 震を刻む/外す(今 {(testMajor == MajorMeiId.Shin ? "震" : "なし")})\n" +
+            $"0: 震を刻む/外す(今 {(meiManager != null && meiManager.State.Major == MajorMeiId.Shin ? "震" : "なし")})\n" +
             "Y: 試しの敵を周りに置く  U: 斬り抜けが終わったことにする\n" +
             $"線の幅 ×{s.LineWidthMultiplier:0.00}  吹き飛ばす力 ×{s.LaunchPowerMultiplier:0.00}\n" +
             $"手ぶらの速さ ×{s.FreeHandSpeedMultiplier:0.00}  自動で斬り戻すまで ×{s.AutoReturnTimeMultiplier:0.00}\n" +

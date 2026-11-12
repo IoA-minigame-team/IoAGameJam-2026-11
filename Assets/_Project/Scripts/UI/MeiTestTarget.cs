@@ -6,12 +6,16 @@ using UnityEngine;
 /// </summary>
 public sealed class MeiTestTarget : MonoBehaviour, ILaunchable
 {
-    // 1秒あたりに減る速さの割合。止まるまでの距離を見やすくするため
-    const float FRICTION = 3f;
-    // これより遅くなったら止まったことにする(m/s)
-    const float STOP_SPEED = 0.05f;
-
+    // 摩擦と止まる速さは MeiTuning の「テスト用の敵」の欄で直す
+    float friction;
+    float stopSpeed;
     Vector3 velocity;
+
+    public void Configure(MeiTuning tuning)
+    {
+        friction = tuning.TestTargetFriction;
+        stopSpeed = tuning.TestTargetStopSpeed;
+    }
 
     public Transform Transform => transform;
     public Vector3 Position => transform.position;
@@ -27,9 +31,9 @@ public sealed class MeiTestTarget : MonoBehaviour, ILaunchable
 
     void Update()
     {
-        if (velocity.sqrMagnitude < STOP_SPEED * STOP_SPEED) return;
+        if (velocity.sqrMagnitude <= stopSpeed * stopSpeed) return;
         float dt = Time.deltaTime;
         transform.position += velocity * dt;
-        velocity *= Mathf.Max(0f, 1f - FRICTION * dt);
+        velocity *= Mathf.Max(0f, 1f - friction * dt);
     }
 }

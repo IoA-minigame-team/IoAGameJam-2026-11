@@ -141,6 +141,12 @@ public sealed class MeiTuning : ScriptableObject
     [SerializeField, Min(0f)] float shinShakeStrength = 0.6f;
     [SerializeField, Min(0f)] float shinShakeDuration = 0.25f;
 
+    [Header("テスト用の敵(Dev シーンで震を試すときだけ使う)")]
+    [Tooltip("試しの敵が押し出されたあと、1秒あたりに減る速さの割合。大きいほど早く止まる")]
+    [SerializeField, Min(0f)] float testTargetFriction = 3f;
+    [Tooltip("試しの敵がこれより遅くなったら止まったことにする速さ(m/s)")]
+    [SerializeField, Min(0f)] float testTargetStopSpeed = 0.05f;
+
     [Header("画面")]
     [Tooltip("最後に落ちた敵から選択画面を開くまでの実時間(秒)。群れが落ちきるのを見せてから止めるため")]
     [SerializeField, Min(0f)] float openDelay = 0.6f;
@@ -157,6 +163,8 @@ public sealed class MeiTuning : ScriptableObject
     public float ShinEdgePowerRatio => shinEdgePowerRatio;
     public float ShinShakeStrength => shinShakeStrength;
     public float ShinShakeDuration => shinShakeDuration;
+    public float TestTargetFriction => testTargetFriction;
+    public float TestTargetStopSpeed => testTargetStopSpeed;
 
     public float GetCap(MeiStat stat)
     {

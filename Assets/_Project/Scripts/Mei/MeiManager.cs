@@ -162,6 +162,18 @@ public sealed class MeiManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 選択画面を通さずに大銘を刻む。テスト用のキーから呼ぶ。
+    /// 選んだときと同じく MeiState に書いてからイベントを出すので、状態とイベントがずれない
+    /// </summary>
+    public void SetMajorForTest(MajorMeiId major)
+    {
+        if (major == state.Major) return;
+        state.SetMajor(major);
+        GameEvents.RaiseMajorMeiChanged(major);
+        StateChanged?.Invoke();
+    }
+
     /// <summary>重み付きで、重複なしに count 個まで選ぶ</summary>
     static List<T> WeightedPick<T>(List<T> pool, Func<T, float> weightOf, int count)
     {
