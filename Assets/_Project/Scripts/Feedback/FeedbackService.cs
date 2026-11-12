@@ -28,6 +28,8 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     // 当たりの音を少しずつずらして鳴らすための待ち行列(鳴らす実時間と、音の高さ)
     readonly Queue<KeyValuePair<float, float>> hitQueue = new Queue<KeyValuePair<float, float>>();
     float nextHitTime;
+    // 最後に当たりの音を実際に鳴らした実時間。止まったコマのあとでも、間をあけて1つずつ鳴らすため
+    float lastHitPlayed = float.NegativeInfinity;
 
     void Awake()
     {
@@ -60,14 +62,20 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         GameEvents.EnemyTeetered -= OnEnemyTeetered;
         GameEvents.WaveStarted -= OnWaveStarted;
         hitQueue.Clear();
+        lastHitPlayed = float.NegativeInfinity;
     }
 
     void Update()
     {
-        // ヒットストップ中(timeScale 0)でも鳴らすので実時間で見る
-        while (hitQueue.Count > 0 && hitQueue.Peek().Key <= Time.unscaledTime)
+        // ヒットストップ中(timeScale 0)でも鳴らすので実時間で見る。
+        // 1コマで鳴らすのは1つだけにし、前に実際に鳴らした時刻からも間をあける。
+        // コマが長く止まって予定の時刻をいくつも過ぎても、同じコマでまとめて鳴って1つの音に潰れないようにするため
+        float now = Time.unscaledTime;
+        float interval = tuning != null ? tuning.HitSeInterval : 0f;
+        if (hitQueue.Count > 0 && hitQueue.Peek().Key <= now && now - lastHitPlayed >= interval)
         {
             Play(SeId.Hit, hitQueue.Dequeue().Value);
+            lastHitPlayed = now;
         }
     }
 
@@ -115,13 +123,29 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         AudioClip clip = entry.Clips[Random.Range(0, entry.Clips.Length)];
         if (clip == null) return;
 
-        // いちばん前に使った声を使い回す
-        AudioSource source = voices[nextVoice];
-        nextVoice = (nextVoice + 1) % voices.Length;
+        AudioSource source = PickVoice();
         source.clip = clip;
         source.volume = entry.Volume;
         source.pitch = pitch * (1f + Random.Range(-entry.PitchJitter, entry.PitchJitter));
         source.Play();
+    }
+
+    /// <summary>
+    /// 鳴らす AudioSource を選ぶ。まず鳴り終わっているものを探し、全部鳴っているときだけ、いちばん前に使ったものを止めて使う。
+    /// 順番だけで選ぶと、空きがあるのに長い音(雷など)を途中で切ってしまうため
+    /// </summary>
+    AudioSource PickVoice()
+    {
+        for (int i = 0; i < voices.Length; i++)
+        {
+            int index = (nextVoice + i) % voices.Length;
+            if (voices[index].isPlaying) continue;
+            nextVoice = (index + 1) % voices.Length;
+            return voices[index];
+        }
+        AudioSource oldest = voices[nextVoice];
+        nextVoice = (nextVoice + 1) % voices.Length;
+        return oldest;
     }
 
     // ================= 数で高さが変わる音 =================
