@@ -3,6 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// 主人公の被弾。敵に触れたら被弾し、残りの被弾回数を PlayerDamaged で流す。
+/// 場外へ落ちたときも被弾1回として数え、開始位置へ戻す。
 /// ゲームオーバーの判定と発行は三條さんの担当なので、ここでは残り回数を知らせるだけにする。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
@@ -26,6 +27,8 @@ public sealed class PlayerHealth : MonoBehaviour
     float grantedInvincibleRemaining;
     // 被弾で残りが 0 になった(本当の終わり)。銘で上限が下がっただけのときと見分けるため
     bool isDefeated;
+    // 場外へ落ちたときに戻す位置。シーンの開始時に立っている所
+    Vector3 spawnPosition;
 
     /// <summary>被弾した回数</summary>
     public int DamageTaken { get; private set; }
@@ -48,6 +51,12 @@ public sealed class PlayerHealth : MonoBehaviour
         if (controller == null) controller = GetComponent<PlayerController>();
     }
 
+    // Awake ではなく Start で覚える。他の部品が Awake で主人公を置き直すことがあるため(三條さんの InkReviewSession など)
+    void Start()
+    {
+        spawnPosition = transform.position;
+    }
+
     void Update()
     {
         if (invincibleRemaining > 0f) invincibleRemaining -= Time.deltaTime;
@@ -55,9 +64,30 @@ public sealed class PlayerHealth : MonoBehaviour
 
         KeepOneAfterMeiChange();
 
+        if (CheckFallOut()) return;
+
         if (!CanTakeDamage()) return;
         if (!IsTouchingEnemy()) return;
 
+        ApplyDamage();
+    }
+
+    // 場外へ落ちたら開始位置へ戻し、被弾1回として数える。
+    // 無敵の最中でも数える。数えないと、被弾直後や演出の無敵の間に落ちた分だけ、減らずに戻れてしまうため
+    bool CheckFallOut()
+    {
+        if (isDefeated || Remaining <= 0) return false;
+        if (TimeController.IsPaused) return false;
+        if (transform.position.y >= spawnPosition.y - tuning.FallOutDepth) return false;
+
+        // 先に戻してから流す。最後の1回でゲームオーバーになっても、主人公が島の上で止まるようにするため
+        if (controller != null) controller.Respawn(spawnPosition);
+        ApplyDamage();
+        return true;
+    }
+
+    void ApplyDamage()
+    {
         DamageTaken++;
         if (Remaining <= 0) isDefeated = true;
         invincibleRemaining = tuning.DamageInvincibleTime;

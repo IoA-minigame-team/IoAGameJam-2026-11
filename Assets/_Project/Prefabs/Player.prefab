@@ -415,6 +415,7 @@ GameObject:
   - component: {fileID: 5891537439742475499}
   - component: {fileID: 407958011581451394}
   - component: {fileID: 1920929492615168929}
+  - component: {fileID: 2605640665924988413}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -554,6 +555,22 @@ MonoBehaviour:
   controller: {fileID: 7194627015480645749}
   trails:
   - {fileID: 7598346039053554935}
+--- !u!114 &2605640665924988413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6830269170275813392}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd972ea60b852ce47b72d88a1f121c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SlashAfterimage
+  tuning: {fileID: 11400000, guid: 5bc4e415fa205174e9c4633a43c09dd8, type: 2}
+  controller: {fileID: 7194627015480645749}
+  body: {fileID: 3395357225849044104}
+  afterimageMaterial: {fileID: 2100000, guid: 5d6f7ab032a16a34988b4415a3c71cd2, type: 2}
 --- !u!1 &7479161937410100096
 GameObject:
   m_ObjectHideFlags: 0
@@ -780,6 +797,11 @@ PrefabInstance:
 --- !u!95 &94108925180536564 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 01feae48cd03706459d3668ad8d30478, type: 3}
+  m_PrefabInstance: {fileID: 5774954169653058405}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &3395357225849044104 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 9167773376777644013, guid: 01feae48cd03706459d3668ad8d30478, type: 3}
   m_PrefabInstance: {fileID: 5774954169653058405}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &5301140222812038317 stripped

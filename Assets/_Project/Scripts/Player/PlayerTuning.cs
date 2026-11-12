@@ -7,6 +7,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "PlayerTuning", menuName = "Hitofuri/PlayerTuning")]
 public sealed class PlayerTuning : ScriptableObject
 {
+    // 演出のスロー倍率の下限。0 だと Time.deltaTime で進む斬り抜けと硬直が止まり、
+    // 演出は硬直の終わりを待ってからスローを解くので、操作できないまま固まる
+    const float MIN_CINEMATIC_SLOW_SCALE = 0.05f;
+
     [Header("移動")]
     // 仕様に「通常の速度」の数値はないので仮の値
     [SerializeField, Min(0f)] float moveSpeed = 5f;
@@ -57,11 +61,47 @@ public sealed class PlayerTuning : ScriptableObject
     // 仕様にない値。敵に触れ続けたとき、一度に何回も被弾しないようにする
     [Tooltip("被弾した後の無敵(秒)")]
     [SerializeField, Min(0f)] float damageInvincibleTime = 1f;
+    // 仕様にない値。場外へ落ちたら被弾1回として開始位置へ戻す。浅いと段差を降りただけで場外になるので、島の高低差より深くする
+    [Tooltip("開始位置からこれだけ下まで落ちたら場外とみなす(m)")]
+    [SerializeField, Min(0.1f)] float fallOutDepth = 5f;
 
     [Header("ヒットストップ")]
     [SerializeField, Min(0f)] float hitStopBase = 0.05f;
     [SerializeField, Min(0f)] float hitStopPerEnemy = 0.01f;
     [SerializeField, Min(0f)] float hitStopMax = 0.25f;
+    // ここから下は仕様にない値。初撃だけだとカクつきに見えるので、2体目以降も1体ごとに短く止める
+    [Tooltip("2体目の当たりの止まり(秒)")]
+    [SerializeField, Min(0f)] float hitStopChain = 0.04f;
+    [Tooltip("3体目以降、1体ごとに止まりへ掛ける倍率。群れでリズムが重くなりすぎないよう、だんだん短くする")]
+    [SerializeField, Range(0f, 1f)] float hitStopChainDecay = 0.85f;
+    [Tooltip("2体目以降の1回の止まりの下限(秒)")]
+    [SerializeField, Min(0f)] float hitStopChainMin = 0.02f;
+    [Tooltip("1回の斬り抜けで止まる合計の上限(秒)。返しは別に数える")]
+    [SerializeField, Min(0f)] float hitStopPassMax = 0.35f;
+    [Tooltip("初撃の揺れの強さ。止まった画に当たった印を出すため")]
+    [SerializeField, Min(0f)] float hitShakeFirst = 0.25f;
+    [Tooltip("2体目以降の揺れの強さ")]
+    [SerializeField, Min(0f)] float hitShakeChain = 0.12f;
+    [Tooltip("当たりの揺れの長さ(秒)")]
+    [SerializeField, Min(0f)] float hitShakeDuration = 0.12f;
+    [Tooltip("当たりのエフェクトを敵の位置からどれだけ上に出すか(m)。敵の原点は足元なので、そのままだと地面に埋まる")]
+    [SerializeField] float hitVfxHeight = 1f;
+
+    [Header("納刀")]
+    // 仕様は「納刀音と小さなヒットストップ」だけで値はないので仮の値
+    [Tooltip("当たった一振りの終点から、鍔が鳴る(納刀の音と小さなヒットストップ)までの秒数。振り抜きの保持と納刀の動きに合わせる")]
+    [SerializeField, Min(0f)] float sheatheClickDelay = 0.3f;
+    [Tooltip("納刀のヒットストップ(秒)。当たりのヒットストップより短くして、締めの小さな間にする")]
+    [SerializeField, Min(0f)] float sheatheHitStop = 0.06f;
+
+    [Header("残像")]
+    // 仕様は「残像」だけで値はないので仮の値
+    [Tooltip("斬り抜け中、前の残像からこの距離(m)進むごとに体の形を残す")]
+    [SerializeField, Min(0.05f)] float afterimageSpacing = 0.8f;
+    [Tooltip("残像が消えるまでの秒数(scaled time。ヒットストップ中は止まる)")]
+    [SerializeField, Min(0.01f)] float afterimageLifetime = 0.25f;
+    [Tooltip("同時に出せる残像の数。足りないときは古いものから使い回す")]
+    [SerializeField, Range(1, 32)] int afterimageMaxCount = 12;
 
     [Header("斬り抜け演出")]
     [Tooltip("線上の敵がこの数以上なら定点カメラに切り替える")]
@@ -70,7 +110,7 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0f)] float cinematicBlendBack = 0.3f;
     // 演出中のスロー倍率と演出後の無敵は「テストで決める」なので仮の値
     [Tooltip("演出中の時間の倍率。離した瞬間から見下ろしへ戻り始めるまで")]
-    [SerializeField, Range(0f, 1f)] float cinematicSlowScale = 0.3f;
+    [SerializeField, Range(MIN_CINEMATIC_SLOW_SCALE, 1f)] float cinematicSlowScale = 0.3f;
     [Tooltip("見下ろしへ戻り終えてからの無敵(秒)。演出の始まりから戻り終えるまでも無敵")]
     [SerializeField, Min(0f)] float postCinematicInvincible = 0.5f;
     // 定点カメラの置き場所は仕様で「任せる」なので仮の値。終点と斬り抜ける向きだけから決め、ステージの形には頼らない
@@ -137,12 +177,27 @@ public sealed class PlayerTuning : ScriptableObject
     public float AutoReturnMinTime => autoReturnMinTime;
     public int MaxDamageCount => maxDamageCount;
     public float DamageInvincibleTime => damageInvincibleTime;
+    public float FallOutDepth => Mathf.Max(0.1f, fallOutDepth);
     public float HitStopBase => hitStopBase;
     public float HitStopPerEnemy => hitStopPerEnemy;
     public float HitStopMax => hitStopMax;
+    public float HitStopChain => hitStopChain;
+    public float HitStopChainDecay => hitStopChainDecay;
+    public float HitStopChainMin => hitStopChainMin;
+    public float HitStopPassMax => hitStopPassMax;
+    public float HitShakeFirst => hitShakeFirst;
+    public float HitShakeChain => hitShakeChain;
+    public float HitShakeDuration => hitShakeDuration;
+    public float HitVfxHeight => hitVfxHeight;
+    public float SheatheClickDelay => sheatheClickDelay;
+    public float SheatheHitStop => sheatheHitStop;
+    public float AfterimageSpacing => afterimageSpacing;
+    public float AfterimageLifetime => afterimageLifetime;
+    public int AfterimageMaxCount => afterimageMaxCount;
     public int CinematicThreshold => cinematicThreshold;
     public float CinematicBlendBack => cinematicBlendBack;
-    public float CinematicSlowScale => cinematicSlowScale;
+    // Range はインスペクターでしか効かず、アセットに 0 が残っていても通るので、読み出しでも下限で切る
+    public float CinematicSlowScale => Mathf.Clamp(cinematicSlowScale, MIN_CINEMATIC_SLOW_SCALE, 1f);
     public float PostCinematicInvincible => postCinematicInvincible;
     public float CinematicCameraDistance => cinematicCameraDistance;
     public float CinematicCameraAngle => cinematicCameraAngle;
