@@ -494,6 +494,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CTestDriver
   fallsPerSwing: 7
   fallInterval: 0.12
+  shakeStrength: 0.5
+  shakeDuration: 0.25
+  vfxOffset: {x: 0, y: 0, z: 3}
   showHelp: 1
   score: {fileID: 2042629479}
 --- !u!4 &130793288
@@ -3508,6 +3511,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1020318000}
   - component: {fileID: 1020317999}
+  - component: {fileID: 1020318001}
   m_Layer: 0
   m_Name: C_Mei
   m_TagString: Untagged
@@ -3546,6 +3550,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1020318001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1020317998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa86f1ed9b458c04c8cd4d36d2f0901f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShinEffect
+  tuning: {fileID: 11400000, guid: eecd407cdbd39b0459735379ea805060, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &1022670088
 GameObject:
   m_ObjectHideFlags: 0
@@ -7836,6 +7856,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeiTestDriver
   meiManager: {fileID: 1020317999}
   fallsPerPress: 15
+  targetCount: 10
+  targetMinDistance: 1.2
+  targetMaxDistance: 4.5
   showHelp: 1
 --- !u!4 &1944968905
 Transform:

@@ -50,6 +50,7 @@ public static class MeiSceneBuilder
         Wire(mei, "window", window);
         // テスト用シーンでは、刻むたびに倍率を Console に出す
         SetBool(mei, "logChanges", true);
+        AddShin(mei.gameObject, meiTuning);
 
         // 刻んだ銘の一覧(左下)
         TextMeshProUGUI meiList = Text(canvas, "MeiList", "", 26, PAPER, TextAlignmentOptions.BottomLeft, new Vector2(0, 0), new Vector2(0, 0), new Vector2(60, 40), new Vector2(1000, 50));
@@ -63,7 +64,54 @@ public static class MeiSceneBuilder
         Wire(driver, "meiManager", mei);
 
         Selection.activeGameObject = mei.gameObject;
-        Debug.Log("[MeiSceneBuilder] 銘の仕組みと選択画面を作った。再生して 7(すぐ開く)、8(15体落とす)で試せる");
+        Debug.Log("[MeiSceneBuilder] 銘の仕組みと選択画面を作った。再生して 7(すぐ開く)、8(15体落とす)、9(大銘)、0、Y、U(震)で試せる");
+    }
+
+    /// <summary>
+    /// 銘の選択画面をもう作ってあるシーンに、大銘「震」を足す。
+    /// 調整値のアセットはもう作ってあるので、コードの初期値は入らない。大銘を候補に出す設定と、効果の無い残光と引力を外す設定もここで入れる。
+    /// </summary>
+    [MenuItem("Hitofuri/増永/大銘「震」を置く")]
+    static void BuildShin()
+    {
+        MeiManager mei = Object.FindAnyObjectByType<MeiManager>();
+        if (mei == null)
+        {
+            Debug.LogWarning("[MeiSceneBuilder] このシーンに MeiManager が無い。先に「銘の選択画面を作る」を押す");
+            return;
+        }
+        MeiTuning meiTuning = LoadOrCreate<MeiTuning>("MeiTuning");
+        AddShin(mei.gameObject, meiTuning);
+        OfferOnlyKaeshiAndShin(meiTuning);
+        Selection.activeGameObject = mei.gameObject;
+        Debug.Log("[MeiSceneBuilder] 大銘「震」を置いた。再生して 0(震を刻む)、Y(試しの敵を置く)、U(斬り抜けが終わったことにする)で試せる");
+    }
+
+    static void AddShin(GameObject target, MeiTuning meiTuning)
+    {
+        if (target.GetComponent<ShinEffect>() != null) return;
+        ShinEffect shin = Undo.AddComponent<ShinEffect>(target);
+        Wire(shin, "tuning", meiTuning);
+        // 髙橋さんの斬り抜けと同じく、Enemy レイヤーの当たり判定だけを探す
+        SerializedObject so = new SerializedObject(shin);
+        so.FindProperty("enemyMask").intValue = LayerMask.GetMask("Enemy");
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void OfferOnlyKaeshiAndShin(MeiTuning meiTuning)
+    {
+        SerializedObject so = new SerializedObject(meiTuning);
+        so.FindProperty("offerMajorMei").boolValue = true;
+        SerializedProperty list = so.FindProperty("majorMeis");
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            SerializedProperty def = list.GetArrayElementAtIndex(i);
+            MajorMeiId id = (MajorMeiId)def.FindPropertyRelative("id").enumValueIndex;
+            def.FindPropertyRelative("enabled").boolValue = id == MajorMeiId.Kaeshi || id == MajorMeiId.Shin;
+        }
+        so.ApplyModifiedProperties();
+        EditorUtility.SetDirty(meiTuning);
+        AssetDatabase.SaveAssets();
     }
 
     // ================= 選択画面 =================
