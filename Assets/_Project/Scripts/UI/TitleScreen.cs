@@ -85,6 +85,9 @@ public sealed class TitleScreen : MonoBehaviour
     Vector3 heroStart;
     Quaternion heroRunRotation;
     bool slashed;
+    // ロゴとボタンが出きったか、遊び方の欄が開いているか。ボタンを押せるのは、出きっていて欄が閉じているときだけ
+    bool revealed;
+    bool howToOpen;
     bool sheathed;
 
     void Awake()
@@ -145,7 +148,6 @@ public sealed class TitleScreen : MonoBehaviour
         if (howToButton != null) howToButton.onClick.AddListener(() => ShowHowTo(true));
         if (howToCloseButton != null) howToCloseButton.onClick.AddListener(() => ShowHowTo(false));
         if (howToPanel != null) howToPanel.SetActive(false);
-        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(startButton.gameObject);
 
         bestText.text = RecordStore.HasRecord
             ? $"自己ベスト　一振り最多 {RecordStore.BestMaxSwing}体（{tuning.TitleFor(RecordStore.BestMaxSwing)}）　得点 {RecordStore.BestScore:N0}"
@@ -156,7 +158,8 @@ public sealed class TitleScreen : MonoBehaviour
         if (flash != null) flash.alpha = 0f;
         if (logoSlash != null) logoSlash.localScale = new Vector3(0f, 1f, 1f);
         if (screenSlash != null) screenSlash.localScale = new Vector3(0f, 1f, 1f);
-
+        // 見えていない間に決定ボタンで始まらないよう、出きるまではボタンを押せなくする
+        UpdateInteractable();
     }
 
     void Update()
@@ -195,6 +198,24 @@ public sealed class TitleScreen : MonoBehaviour
         {
             revealInOrder[i].alpha = Mathf.Clamp01((sinceLogo - 0.4f - i * 0.15f) / 0.5f);
         }
+
+        // 最後の1つまで出きったら、ボタンを押せるようにし、ゲームパッドでもすぐ押せるよう「始める」を選ぶ
+        float revealEnd = 0.4f + Mathf.Max(0, revealInOrder.Length - 1) * 0.15f + 0.5f;
+        if (!revealed && sinceLogo >= revealEnd)
+        {
+            revealed = true;
+            UpdateInteractable();
+            if (!howToOpen && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(startButton.gameObject);
+        }
+    }
+
+    /// <summary>タイトルのボタンを押せるかどうかを、今の状態に合わせる(CanvasGroup の alpha は見た目だけなので、押せるかは別に切り替える)</summary>
+    void UpdateInteractable()
+    {
+        if (content == null) return;
+        bool usable = revealed && !howToOpen;
+        content.interactable = usable;
+        content.blocksRaycasts = usable;
     }
 
     /// <summary>走ってくる間は奥から止まる位置へ動かし、着いたら止まる向きへ振り向かせる</summary>
@@ -243,17 +264,21 @@ public sealed class TitleScreen : MonoBehaviour
     void ShowHowTo(bool show)
     {
         if (howToPanel == null || leaving) return;
+        howToOpen = show;
         howToPanel.SetActive(show);
-        // 後ろのロゴやボタンが透けて読みにくくならないよう、開いている間はタイトルの文字を隠す
+        // 後ろのロゴやボタンが透けて読みにくくならないよう、開いている間はタイトルの文字を隠す。
+        // 隠すだけだと後ろの「始める」を選べてしまうので、押せないようにもする
         if (content != null) content.alpha = show ? 0f : 1f;
+        UpdateInteractable();
         Feedback.PlaySe(SeId.UiMove, Vector3.zero);
-        GameObject select = show ? howToCloseButton.gameObject : howToButton.gameObject;
+        // 出きる前に閉じたときは、まだ何も選ばない(出きったときに「始める」を選ぶ)
+        GameObject select = show ? howToCloseButton.gameObject : revealed ? howToButton.gameObject : null;
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(select);
     }
 
     void OnStart()
     {
-        if (leaving) return;
+        if (leaving || !revealed || howToOpen) return;
         leaving = true;
         Feedback.PlaySe(SeId.Slash, Vector3.zero);
         Feedback.PlaySe(SeId.Thunder, Vector3.zero);

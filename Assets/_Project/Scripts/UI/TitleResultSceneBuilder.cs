@@ -36,6 +36,7 @@ public static class TitleResultSceneBuilder
     const string STAGE_NAME = "C_TitleStage";
     const string POST_NAME = "C_TitlePost";
     const string TITLE_CANVAS_NAME = "C_TitleCanvas";
+    const string RESULT_CANVAS_NAME = "C_ResultCanvas";
     // 主人公は画面の右手前(左のロゴとボタンに重ならない所)に大きく立ち、少しこちらを向く。高さ(y)は、置くときに地面を調べて足が着くように決める
     static readonly Vector3 HERO_POSITION = new Vector3(1.05f, 0f, -2.6f);
     // Player の原点から足の裏までの高さ(Player.prefab の Model が 1.08 下にあるため)
@@ -294,8 +295,10 @@ public static class TitleResultSceneBuilder
     {
         FeedbackTuning feedbackTuning = LoadOrCreate<FeedbackTuning>("FeedbackTuning");
         EnsureEventSystem();
+        // 作り直せるよう、前に作ったものがあれば先に消す(2つ残ると、2つとも動いて雷が2回鳴る)
+        DestroyIfExists(RESULT_CANVAS_NAME);
 
-        Canvas canvas = NewCanvas("C_ResultCanvas");
+        Canvas canvas = NewCanvas(RESULT_CANVAS_NAME);
         Stretch(Img(canvas.transform, "Background", INK).rectTransform);
         RectTransform box = Place(Rect("Content", canvas.transform), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500, 860));
 
