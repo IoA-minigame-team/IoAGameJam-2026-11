@@ -33,14 +33,14 @@ public static class SlashResolver
     const float CHECK_HEIGHT = 4f;
     // これより短い線は向きが決まらないので、主人公の向きを使う
     const float MIN_LINE_LENGTH = 0.01f;
+    // 盾に弾かれた敵がいないときの線上の位置。斬り抜けの終点(1)を超えるので、通り過ぎる判定に掛からない
+    const float NO_SHIELD_PROGRESS = 2f;
 
     static readonly Collider[] colliderBuffer = new Collider[MAX_COLLIDERS];
     static readonly HashSet<ILaunchable> seen = new HashSet<ILaunchable>();
 
     /// <summary>
-    /// 線(start→end)に当たる敵を集め、通り過ぎる順に並べて results に入れる。
-    /// 盾に正面から当たった敵は吹き飛ばさないので results に入れず、その数を shieldBlockedCount で返す。
-    /// 戻り値は斬り抜ける向き(水平、正規化済み)
+    /// 弾かれた盾の位置が要らない呼び出し用。三條さんの確認用コード(Game/)がこの形で呼んでいるので残す
     /// </summary>
     public static Vector3 Resolve(
         Vector3 start,
@@ -52,8 +52,29 @@ public static class SlashResolver
         List<SlashTarget> results,
         out int shieldBlockedCount)
     {
+        return Resolve(start, end, fallbackDirection, tuning, mei, enemyMask, results, out shieldBlockedCount, out _);
+    }
+
+    /// <summary>
+    /// 線(start→end)に当たる敵を集め、通り過ぎる順に並べて results に入れる。
+    /// 盾に正面から当たった敵は吹き飛ばさないので results に入れず、その数を shieldBlockedCount で返す。
+    /// firstShieldProgress は弾かれた敵のうち最も始点に近い線上の位置(0〜1)。弾かれた敵がいなければ 1 より大きい値。
+    /// 戻り値は斬り抜ける向き(水平、正規化済み)
+    /// </summary>
+    public static Vector3 Resolve(
+        Vector3 start,
+        Vector3 end,
+        Vector3 fallbackDirection,
+        PlayerTuning tuning,
+        IMeiStats mei,
+        LayerMask enemyMask,
+        List<SlashTarget> results,
+        out int shieldBlockedCount,
+        out float firstShieldProgress)
+    {
         results.Clear();
         shieldBlockedCount = 0;
+        firstShieldProgress = NO_SHIELD_PROGRESS;
 
         Vector3 flat = end - start;
         flat.y = 0f;
@@ -90,9 +111,12 @@ public static class SlashResolver
             float absSide = Mathf.Abs(side);
             if (absSide > halfWidth) continue;
 
+            float progress = length >= MIN_LINE_LENGTH ? along / length : 0f;
+
             if (enemy.IsShieldFacing(direction))
             {
                 shieldBlockedCount++;
+                firstShieldProgress = Mathf.Min(firstShieldProgress, progress);
                 continue;
             }
 
@@ -109,7 +133,6 @@ public static class SlashResolver
                 * enemy.Weight
                 * enemy.GlowMultiplier;
 
-            float progress = length >= MIN_LINE_LENGTH ? along / length : 0f;
             results.Add(new SlashTarget(enemy, progress, launchDirection * power, 1f - edge));
         }
         seen.Clear();

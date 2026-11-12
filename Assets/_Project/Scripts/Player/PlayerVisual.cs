@@ -68,6 +68,8 @@ public sealed class PlayerVisual : MonoBehaviour
 
     // 決めの姿勢を残している間に来た切り替えは、残し終わってから行う
     float poseHoldRemaining;
+    // 当たった一振りの後、納刀の鍔が鳴るまで納刀の動きを残しているか
+    bool isHoldingSheathe;
     bool hasPendingCrossFade;
     int pendingStateHash;
     float pendingDuration;
@@ -129,7 +131,16 @@ public sealed class PlayerVisual : MonoBehaviour
         // 突き立て、斬り抜け、倒れるは操作に直結するので、残している姿勢があってもすぐ切り替える
         switch (state)
         {
-            case PlayerController.State.Armed: RequestCrossFade(locomotionHash, tuning.AnimationCrossFade); break;
+            case PlayerController.State.Armed:
+                // 硬直は納刀の動きより短いので、そのままだと納刀が見えずに走りへ戻る。止まっている間は鍔が鳴るまで納刀を見せる
+                if (lastState == PlayerController.State.Recovery && controller.IsSheathePending)
+                {
+                    // 振り抜いた形をまだ残していたら、ここで納刀へ移る
+                    if (hasPendingCrossFade && pendingStateHash == sheatheHash) CrossFadeNow(sheatheHash, tuning.AnimationCrossFade);
+                    isHoldingSheathe = true;
+                }
+                RequestCrossFade(locomotionHash, tuning.AnimationCrossFade);
+                break;
             case PlayerController.State.Planting: CrossFadeNow(plantHash, tuning.AnimationCrossFade); break;
             case PlayerController.State.FreeHand:
                 // 突き立てた瞬間が一瞬で消えないよう、刺した姿勢を少し残してから手ぶらの待機へ移る
@@ -151,6 +162,7 @@ public sealed class PlayerVisual : MonoBehaviour
         if (!hasAnimator || !animator.HasState(BASE_LAYER, slashHash)) return;
         // 体を逆向きにしてから同じクリップを最初から流す。同じステートへの CrossFade では流し直さないことがあるので Play を使う
         poseHoldRemaining = 0f;
+        isHoldingSheathe = false;
         hasPendingCrossFade = false;
         animator.Play(slashHash, BASE_LAYER, 0f);
     }
@@ -162,9 +174,11 @@ public sealed class PlayerVisual : MonoBehaviour
         poseHoldRemaining = duration;
     }
 
+    bool IsHoldingPose => poseHoldRemaining > 0f || (isHoldingSheathe && controller.IsSheathePending);
+
     void RequestCrossFade(int stateHash, float duration)
     {
-        if (poseHoldRemaining <= 0f)
+        if (!IsHoldingPose)
         {
             CrossFade(stateHash, duration);
             return;
@@ -179,6 +193,7 @@ public sealed class PlayerVisual : MonoBehaviour
     void CrossFadeNow(int stateHash, float duration)
     {
         poseHoldRemaining = 0f;
+        isHoldingSheathe = false;
         hasPendingCrossFade = false;
         CrossFade(stateHash, duration);
     }
@@ -193,9 +208,10 @@ public sealed class PlayerVisual : MonoBehaviour
         // 動き出したら、足が滑って見えないよう残すのをやめる
         bool canMove = state == PlayerController.State.Armed || state == PlayerController.State.FreeHand;
         bool startedMoving = canMove && horizontalSpeed > MIN_MOVING_SPEED;
-        if (poseHoldRemaining > 0f && !startedMoving) return;
+        if (IsHoldingPose && !startedMoving) return;
 
         poseHoldRemaining = 0f;
+        isHoldingSheathe = false;
         hasPendingCrossFade = false;
         CrossFade(pendingStateHash, pendingDuration);
     }
