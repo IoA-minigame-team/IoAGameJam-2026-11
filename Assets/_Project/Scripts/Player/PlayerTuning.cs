@@ -61,6 +61,9 @@ public sealed class PlayerTuning : ScriptableObject
     // 仕様にない値。敵に触れ続けたとき、一度に何回も被弾しないようにする
     [Tooltip("被弾した後の無敵(秒)")]
     [SerializeField, Min(0f)] float damageInvincibleTime = 1f;
+    // 仕様にない値。場外へ落ちたら被弾1回として開始位置へ戻す。浅いと段差を降りただけで場外になるので、島の高低差より深くする
+    [Tooltip("開始位置からこれだけ下まで落ちたら場外とみなす(m)")]
+    [SerializeField, Min(0.1f)] float fallOutDepth = 5f;
 
     [Header("ヒットストップ")]
     [SerializeField, Min(0f)] float hitStopBase = 0.05f;
@@ -174,6 +177,7 @@ public sealed class PlayerTuning : ScriptableObject
     public float AutoReturnMinTime => autoReturnMinTime;
     public int MaxDamageCount => maxDamageCount;
     public float DamageInvincibleTime => damageInvincibleTime;
+    public float FallOutDepth => Mathf.Max(0.1f, fallOutDepth);
     public float HitStopBase => hitStopBase;
     public float HitStopPerEnemy => hitStopPerEnemy;
     public float HitStopMax => hitStopMax;
