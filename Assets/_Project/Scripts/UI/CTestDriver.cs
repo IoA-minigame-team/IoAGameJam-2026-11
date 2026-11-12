@@ -21,6 +21,10 @@ public sealed class CTestDriver : MonoBehaviour
     [SerializeField, Min(0f)] float shakeDuration = 0.25f;
     [Tooltip("6キーでエフェクトを出す位置(このオブジェクトからのずれ)")]
     [SerializeField] Vector3 vfxOffset = new Vector3(0f, 0f, 3f);
+    [Tooltip("T キーで吹き飛ばす仮の敵の数と速さ、島の半径(m)。半径の外へ出ると落ちる")]
+    [SerializeField, Min(1)] int testEnemyCount = 5;
+    [SerializeField, Min(0f)] float testLaunchSpeed = 13f;
+    [SerializeField, Min(1f)] float testIslandRadius = 8f;
     [SerializeField] bool showHelp = true;
     [Tooltip("記録(一振り最多など)を画面の隅に出すため。HUD には得点しか出ないので、確認用にここで見る")]
     [SerializeField] ScoreCounter score;
@@ -48,6 +52,7 @@ public sealed class CTestDriver : MonoBehaviour
         if (k.digit4Key.wasPressedThisFrame) { Feedback.Shake(shakeStrength, shakeDuration); lastTried = "揺れ"; }
         if (k.digit5Key.wasPressedThisFrame) PlayNextSe();
         if (k.digit6Key.wasPressedThisFrame) SpawnNextVfx();
+        if (k.tKey.wasPressedThisFrame) StartCoroutine(LaunchTestEnemies());
     }
 
     /// <summary>一振りを流す。count が 0 なら空振り</summary>
@@ -93,6 +98,37 @@ public sealed class CTestDriver : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 仮の敵を一列に並べて、斬り抜けで吹き飛ばしたときと同じように EnemyHit を流す。
+    /// 残光(黒い雷)、縁を越える音、光の粒、得点を、本物の主人公と敵が無くても確かめるため
+    /// </summary>
+    IEnumerator LaunchTestEnemies()
+    {
+        slashId++;
+        int id = slashId;
+        Vector3 start = transform.position, end = start + Vector3.forward * 8f;
+        GameEvents.RaiseSlashStarted(new SlashStartedInfo(id, start, end));
+        Feedback.PlaySe(SeId.Slash, start);
+
+        for (int i = 0; i < testEnemyCount; i++)
+        {
+            // 横一列に並べ、少しずつ向きを散らして島の外へ飛ばす
+            float x = (i - (testEnemyCount - 1) * 0.5f) * 1.2f;
+            CTestEnemy enemy = CTestEnemy.Create(transform.position + new Vector3(x, 0f, 2f), testIslandRadius);
+            Vector3 velocity = Quaternion.Euler(0f, x * 6f, 0f) * Vector3.forward * testLaunchSpeed;
+            enemy.Launch(velocity, id);
+            GameEvents.RaiseEnemyHit(new EnemyHitInfo(id, enemy, velocity, 1f));
+            Feedback.PlaySe(SeId.Hit, enemy.Position);
+            Feedback.SpawnVfx(VfxId.Hit, enemy.Position, Quaternion.identity);
+            yield return new WaitForSeconds(0.2f / testEnemyCount);
+        }
+        GameEvents.RaiseSlashFinished(new SlashFinishedInfo(id, testEnemyCount));
+        chain++;
+        GameEvents.RaiseChainChanged(chain);
+        Feedback.PlaySe(SeId.Sheathe, end);
+        lastTried = "仮の敵を吹き飛ばす";
+    }
+
     void PlayNextSe()
     {
         seIndex = NextIndex(seIndex, ALL_SE.Length);
@@ -118,7 +154,7 @@ public sealed class CTestDriver : MonoBehaviour
         if (!showHelp) return;
         string record = score == null ? "" :
             $"\n得点 {score.Score}  一振り最多 {score.MaxSwing}  最大連鎖 {score.MaxChain}  落とした数 {score.Falls}";
-        GUI.Box(new Rect(10, Screen.height - 230, 460, 220),
+        GUI.Box(new Rect(10, Screen.height - 250, 460, 240),
             "C テスト(キーボード)\n" +
             $"1: {fallsPerSwing}体まとめて落とす一振り\n" +
             "2: 空振り(連鎖が 0 に戻る)\n" +
@@ -126,7 +162,8 @@ public sealed class CTestDriver : MonoBehaviour
             "0: 20体落とす一振り(一閃、断ち、一刀)\n" +
             "4: 画面を揺らす\n" +
             "5: SE を順に鳴らす\n" +
-            "6: エフェクトを順に出す" +
+            "6: エフェクトを順に出す\n" +
+            "T: 仮の敵を吹き飛ばす(残光、縁越えの音、光の粒)" +
             record +
             (lastTried.Length > 0 ? "\n最後に試したもの: " + lastTried : ""));
     }

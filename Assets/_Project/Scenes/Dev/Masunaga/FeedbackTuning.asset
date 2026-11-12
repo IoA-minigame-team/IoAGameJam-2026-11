@@ -139,8 +139,8 @@ MonoBehaviour:
   - id: 4
     prefab: {fileID: 8785563691862744049, guid: 2eb748bb435d03543aedccc60b3e9f98, type: 3}
     lifetime: 2
-  boltCoreMaterial: {fileID: 0}
-  boltRimMaterial: {fileID: 0}
+  boltCoreMaterial: {fileID: 2100000, guid: 269a3389a5758d144ab50da64dc2b516, type: 2}
+  boltRimMaterial: {fileID: 2100000, guid: d970aedc407b75045ad3de8d58c0d4c8, type: 2}
   ringMaterial: {fileID: 2100000, guid: bba74c886ecf16e42a039e70c6f5b6a7, type: 2}
   glowColor: {r: 1, g: 1, b: 1, a: 1}
   glowStrength: 0.6

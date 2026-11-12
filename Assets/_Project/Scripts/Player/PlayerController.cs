@@ -80,6 +80,16 @@ public sealed class PlayerController : MonoBehaviour
     // passHitCount は今の斬り抜けだけ(ヒットストップ用)、slashHitCount は返しを含めた一振りの合計
     int passHitCount;
     int slashHitCount;
+    // 今の斬り抜けで止めた回数と合計(秒)、最後に止めたフレーム。同じフレームの当たりは1回の止まりにまとめる
+    int passStopCount;
+    float passStopTotal;
+    int lastStopFrame = -1;
+    // 盾に弾かれた敵のうち最初の1体の線上の位置。主人公がここを通り過ぎた瞬間に弾かれた音を鳴らす
+    float shieldBlockProgress;
+    bool shieldBlockPlayed;
+
+    // 納刀の鍔が鳴るまでの残り(scaled time)。負なら予約なし
+    float sheatheRemaining = -1f;
 
     public State CurrentState { get; private set; }
 
@@ -132,6 +142,9 @@ public sealed class PlayerController : MonoBehaviour
     /// <summary>直前の斬り戻しで、盾に正面から弾かれた敵の数</summary>
     public int LastShieldBlockedCount { get; private set; }
 
+    /// <summary>当たった一振りの後で、納刀の音とヒットストップがまだ来ていないか。演出のカメラが納刀を映し終えるまで待つため</summary>
+    public bool IsSheathePending => sheatheRemaining >= 0f;
+
     void Awake()
     {
         characterController = GetComponent<CharacterController>();
@@ -180,6 +193,9 @@ public sealed class PlayerController : MonoBehaviour
         // 銘の選択などで止まっている間は入力を読まない。A ボタンで選んだときに刀を置かないため
         bool acceptInput = !TimeController.IsPaused;
         float dt = Time.deltaTime;
+
+        // 硬直が明けて動き出しても鳴らすので、状態に関係なく数える
+        UpdateSheathe(dt);
 
         switch (CurrentState)
         {
@@ -258,6 +274,8 @@ public sealed class PlayerController : MonoBehaviour
 
     void PlantSword()
     {
+        // 納刀が鳴る前に次の刀を置いたら、刀は手元にないので鳴らさない
+        sheatheRemaining = -1f;
         plantedPosition = transform.position;
         freeHandElapsed = 0f;
 
@@ -356,9 +374,9 @@ public sealed class PlayerController : MonoBehaviour
         // 当たる敵はこの斬り抜けを始める瞬間に集める。返しでは、1回目の後に線へ入ってきた敵も当たる
         passDirection = SlashResolver.Resolve(
             start, end, fallbackDirection, tuning, GameContext.MeiStats, enemyMask,
-            slashTargets, out int shieldBlockedCount);
-        // 盾に弾かれた音は SeId にまだ無い(増永さんに追加を頼む)。追加されたら 1 以上のときに鳴らす
+            slashTargets, out int shieldBlockedCount, out shieldBlockProgress);
         LastShieldBlockedCount = shieldBlockedCount;
+        shieldBlockPlayed = false;
 
         Feedback.PlaySe(SeId.Slash, start);
         Feedback.SpawnVfx(VfxId.SlashTrail, start, Quaternion.LookRotation(passDirection));
@@ -368,6 +386,9 @@ public sealed class PlayerController : MonoBehaviour
         slashElapsed = -delay;
         nextTargetIndex = 0;
         passHitCount = 0;
+        passStopCount = 0;
+        passStopTotal = 0f;
+        lastStopFrame = -1;
         return passDirection;
     }
 
@@ -387,6 +408,13 @@ public sealed class PlayerController : MonoBehaviour
             nextTargetIndex++;
         }
 
+        // 弾かれた音は当たりの音と同じく、盾を通り過ぎた瞬間に1回だけ鳴らす。何体弾かれても重ねない
+        if (!shieldBlockPlayed && shieldBlockProgress <= progress)
+        {
+            shieldBlockPlayed = true;
+            Feedback.PlaySe(SeId.ShieldBlock, Vector3.Lerp(passStart, passEnd, shieldBlockProgress));
+        }
+
         if (progress >= 1f) FinishSlashPass();
     }
 
@@ -395,14 +423,7 @@ public sealed class PlayerController : MonoBehaviour
         // 斬り抜けの間に消えた敵(先に落ちたなど)は飛ばさない
         if (target.Enemy == null || (target.Enemy is Object unityObject && unityObject == null)) return;
 
-        if (passHitCount == 0)
-        {
-            // ヒットストップは斬り抜けごとに最初に当たった瞬間に1回だけ。長さはその斬り抜けで当てる数で決める
-            float hitStop = Mathf.Min(
-                tuning.HitStopBase + tuning.HitStopPerEnemy * slashTargets.Count,
-                tuning.HitStopMax);
-            TimeController.HitStop(hitStop);
-        }
+        ApplyHitStop();
 
         passHitCount++;
         slashHitCount++;
@@ -410,7 +431,42 @@ public sealed class PlayerController : MonoBehaviour
         target.Enemy.Launch(target.Velocity, currentSlashId);
         GameEvents.RaiseEnemyHit(new EnemyHitInfo(currentSlashId, target.Enemy, target.Velocity, target.Frontness));
         Feedback.PlaySe(SeId.Hit, position);
-        Feedback.SpawnVfx(VfxId.Hit, position, Quaternion.identity);
+        // 敵の原点は足元なので、体の高さに出して地面に埋まらないようにする
+        Feedback.SpawnVfx(VfxId.Hit, position + Vector3.up * tuning.HitVfxHeight, Quaternion.identity);
+    }
+
+    // 1体ごとに止めて揺らす。止まっている間は slashElapsed が進まないので、斬り抜けが「当たって、止まって、進む」の繰り返しになる
+    void ApplyHitStop()
+    {
+        // 横に並んだ敵が同じフレームで当たったときは1回の止まりにまとめる。続けて止まるとカクつきに見えるため
+        if (Time.frameCount == lastStopFrame) return;
+
+        float hitStop;
+        float shake;
+        if (passStopCount == 0)
+        {
+            // 初撃は重く。長さはその斬り抜けで当てる数で決める
+            hitStop = Mathf.Min(tuning.HitStopBase + tuning.HitStopPerEnemy * slashTargets.Count, tuning.HitStopMax);
+            shake = tuning.HitShakeFirst;
+        }
+        else
+        {
+            // 2体目以降はだんだん短く。群れでも一振りが重くなりすぎないようにする
+            hitStop = Mathf.Max(
+                tuning.HitStopChainMin,
+                tuning.HitStopChain * Mathf.Pow(tuning.HitStopChainDecay, passStopCount - 1));
+            shake = tuning.HitShakeChain;
+        }
+
+        hitStop = Mathf.Min(hitStop, tuning.HitStopPassMax - passStopTotal);
+        if (hitStop <= 0f) return;
+
+        lastStopFrame = Time.frameCount;
+        passStopCount++;
+        passStopTotal += hitStop;
+        TimeController.HitStop(hitStop);
+        // 止まった画が何も変わらないとカクつきに見えるので、止めると同時に揺らす(揺れは実時間で動かしてある)
+        Feedback.Shake(shake, tuning.HitShakeDuration);
     }
 
     void FinishSlashPass()
@@ -458,10 +514,24 @@ public sealed class PlayerController : MonoBehaviour
             GameEvents.RaiseChainChanged(Chain);
         }
 
-        Feedback.PlaySe(hit ? SeId.Sheathe : SeId.Whiff, transform.position);
+        // 納刀の音は振り抜いた形と納刀の動きを見せてから鳴らす。斬り抜けの終点だと当たりのヒットストップと続いて見分けにくいため
+        if (hit) sheatheRemaining = tuning.SheatheClickDelay;
+        else Feedback.PlaySe(SeId.Whiff, transform.position);
 
         stateTimer = hit ? tuning.HitRecovery : tuning.WhiffRecovery;
         CurrentState = State.Recovery;
+    }
+
+    // 鍔が鳴る瞬間に、音と小さなヒットストップで一振りを締める
+    void UpdateSheathe(float dt)
+    {
+        if (sheatheRemaining < 0f) return;
+        sheatheRemaining -= dt;
+        if (sheatheRemaining > 0f) return;
+
+        sheatheRemaining = -1f;
+        Feedback.PlaySe(SeId.Sheathe, transform.position);
+        TimeController.HitStop(tuning.SheatheHitStop);
     }
 
     void ReturnSwordToHand()
@@ -473,6 +543,17 @@ public sealed class PlayerController : MonoBehaviour
         sword.SetParent(swordHolder, false);
         sword.localPosition = swordLocalPosition;
         sword.localRotation = swordLocalRotation;
+    }
+
+    // ---- カメラ ----
+
+    /// <summary>
+    /// 移動の基準にするカメラを差し替える。シーンのカメラ側(PlayerCameraBinder)から渡す。
+    /// 主人公は Prefab なので、シーンのカメラを参照させずに済むようにするため
+    /// </summary>
+    public void SetMoveCamera(Transform moveCamera)
+    {
+        if (moveCamera != null) cameraTransform = moveCamera;
     }
 
     // ---- 操作の保留 ----
@@ -509,6 +590,7 @@ public sealed class PlayerController : MonoBehaviour
             slashTargets.Clear();
         }
         IsReturnSlashing = false;
+        sheatheRemaining = -1f;
         ClearAutoReturn();
         CurrentState = State.Disabled;
     }

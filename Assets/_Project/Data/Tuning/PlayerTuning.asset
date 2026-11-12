@@ -33,6 +33,19 @@ MonoBehaviour:
   hitStopBase: 0.05
   hitStopPerEnemy: 0.01
   hitStopMax: 0.25
+  hitStopChain: 0.04
+  hitStopChainDecay: 0.85
+  hitStopChainMin: 0.02
+  hitStopPassMax: 0.35
+  hitShakeFirst: 0.25
+  hitShakeChain: 0.12
+  hitShakeDuration: 0.12
+  hitVfxHeight: 1
+  sheatheClickDelay: 0.5
+  sheatheHitStop: 0.06
+  afterimageSpacing: 0.8
+  afterimageLifetime: 0.25
+  afterimageMaxCount: 12
   cinematicThreshold: 5
   cinematicBlendBack: 0.3
   cinematicSlowScale: 0.5

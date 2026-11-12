@@ -66,6 +66,39 @@ public sealed class PlayerTuning : ScriptableObject
     [SerializeField, Min(0f)] float hitStopBase = 0.05f;
     [SerializeField, Min(0f)] float hitStopPerEnemy = 0.01f;
     [SerializeField, Min(0f)] float hitStopMax = 0.25f;
+    // ここから下は仕様にない値。初撃だけだとカクつきに見えるので、2体目以降も1体ごとに短く止める
+    [Tooltip("2体目の当たりの止まり(秒)")]
+    [SerializeField, Min(0f)] float hitStopChain = 0.04f;
+    [Tooltip("3体目以降、1体ごとに止まりへ掛ける倍率。群れでリズムが重くなりすぎないよう、だんだん短くする")]
+    [SerializeField, Range(0f, 1f)] float hitStopChainDecay = 0.85f;
+    [Tooltip("2体目以降の1回の止まりの下限(秒)")]
+    [SerializeField, Min(0f)] float hitStopChainMin = 0.02f;
+    [Tooltip("1回の斬り抜けで止まる合計の上限(秒)。返しは別に数える")]
+    [SerializeField, Min(0f)] float hitStopPassMax = 0.35f;
+    [Tooltip("初撃の揺れの強さ。止まった画に当たった印を出すため")]
+    [SerializeField, Min(0f)] float hitShakeFirst = 0.25f;
+    [Tooltip("2体目以降の揺れの強さ")]
+    [SerializeField, Min(0f)] float hitShakeChain = 0.12f;
+    [Tooltip("当たりの揺れの長さ(秒)")]
+    [SerializeField, Min(0f)] float hitShakeDuration = 0.12f;
+    [Tooltip("当たりのエフェクトを敵の位置からどれだけ上に出すか(m)。敵の原点は足元なので、そのままだと地面に埋まる")]
+    [SerializeField] float hitVfxHeight = 1f;
+
+    [Header("納刀")]
+    // 仕様は「納刀音と小さなヒットストップ」だけで値はないので仮の値
+    [Tooltip("当たった一振りの終点から、鍔が鳴る(納刀の音と小さなヒットストップ)までの秒数。振り抜きの保持と納刀の動きに合わせる")]
+    [SerializeField, Min(0f)] float sheatheClickDelay = 0.3f;
+    [Tooltip("納刀のヒットストップ(秒)。当たりのヒットストップより短くして、締めの小さな間にする")]
+    [SerializeField, Min(0f)] float sheatheHitStop = 0.06f;
+
+    [Header("残像")]
+    // 仕様は「残像」だけで値はないので仮の値
+    [Tooltip("斬り抜け中、前の残像からこの距離(m)進むごとに体の形を残す")]
+    [SerializeField, Min(0.05f)] float afterimageSpacing = 0.8f;
+    [Tooltip("残像が消えるまでの秒数(scaled time。ヒットストップ中は止まる)")]
+    [SerializeField, Min(0.01f)] float afterimageLifetime = 0.25f;
+    [Tooltip("同時に出せる残像の数。足りないときは古いものから使い回す")]
+    [SerializeField, Range(1, 32)] int afterimageMaxCount = 12;
 
     [Header("斬り抜け演出")]
     [Tooltip("線上の敵がこの数以上なら定点カメラに切り替える")]
@@ -144,6 +177,19 @@ public sealed class PlayerTuning : ScriptableObject
     public float HitStopBase => hitStopBase;
     public float HitStopPerEnemy => hitStopPerEnemy;
     public float HitStopMax => hitStopMax;
+    public float HitStopChain => hitStopChain;
+    public float HitStopChainDecay => hitStopChainDecay;
+    public float HitStopChainMin => hitStopChainMin;
+    public float HitStopPassMax => hitStopPassMax;
+    public float HitShakeFirst => hitShakeFirst;
+    public float HitShakeChain => hitShakeChain;
+    public float HitShakeDuration => hitShakeDuration;
+    public float HitVfxHeight => hitVfxHeight;
+    public float SheatheClickDelay => sheatheClickDelay;
+    public float SheatheHitStop => sheatheHitStop;
+    public float AfterimageSpacing => afterimageSpacing;
+    public float AfterimageLifetime => afterimageLifetime;
+    public int AfterimageMaxCount => afterimageMaxCount;
     public int CinematicThreshold => cinematicThreshold;
     public float CinematicBlendBack => cinematicBlendBack;
     // Range はインスペクターでしか効かず、アセットに 0 が残っていても通るので、読み出しでも下限で切る
