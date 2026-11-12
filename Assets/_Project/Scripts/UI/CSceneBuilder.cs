@@ -92,7 +92,7 @@ public static class CSceneBuilder
         SetUpTestCamera();
 
         Selection.activeGameObject = service.gameObject;
-        Debug.Log($"[CSceneBuilder] 揺れ、SE({seCount} 個)、エフェクトを作った。再生して 4(揺れ)、5(SE)、6(エフェクト)、1(一振り)で試せる");
+        Debug.Log($"[CSceneBuilder] 揺れ、SE({seCount} 個)、エフェクトを作った。再生して 4(揺れ)、5(SE)、6(エフェクト)、1(一振り)、T(仮の敵の残光)で試せる");
     }
 
     // ================= ゲーム中の画面 =================
@@ -271,7 +271,15 @@ public static class CSceneBuilder
         Material dotMaterial = MakeParticleMaterial("VfxSoftDot", dot);
         Material ringMaterial = MakeParticleMaterial("VfxRing", ring);
 
+        // 残光の黒い雷:芯は黒(半透明で重ねる)、縁は金(加算で光る)。芯を縁より後に描いて、金の縁の上に黒を重ねる
+        Material boltRim = MakeParticleMaterial("VfxBoltRim", null);
+        Material boltCore = MakeParticleMaterial("VfxBoltCore", null, false);
+        boltCore.renderQueue = (int)RenderQueue.Transparent + 1;
+        EditorUtility.SetDirty(boltCore);
+
         SerializedObject so = new SerializedObject(tuning);
+        so.FindProperty("boltCoreMaterial").objectReferenceValue = boltCore;
+        so.FindProperty("boltRimMaterial").objectReferenceValue = boltRim;
         SerializedProperty entries = so.FindProperty("vfxEntries");
         SetVfx(entries, VfxId.LightRing, MakeLightRingPrefab(ringMaterial, dotMaterial), 1f);
         SetVfx(entries, VfxId.SlashTrail, MakeSlashTrailPrefab(dotMaterial), 1f);
@@ -347,19 +355,19 @@ public static class CSceneBuilder
         return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
     }
 
-    /// <summary>URP の粒子用シェーダーで、加算(重なるほど明るく光る)のマテリアルを作る</summary>
-    static Material MakeParticleMaterial(string name, Texture2D texture)
+    /// <summary>URP の粒子用シェーダーで、加算(重なるほど明るく光る)か半透明のマテリアルを作る</summary>
+    static Material MakeParticleMaterial(string name, Texture2D texture, bool additive = true)
     {
         string path = $"{MATERIAL_FOLDER}/{name}.mat";
         Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
         if (existing != null) return existing;
 
         Material m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
-        // インスペクターで Surface Type = Transparent、Blending Mode = Additive を選ぶのと同じ設定
+        // インスペクターで Surface Type = Transparent、Blending Mode = Additive(または Alpha)を選ぶのと同じ設定
         m.SetFloat("_Surface", 1f);
-        m.SetFloat("_Blend", 2f);
-        m.SetFloat("_SrcBlend", (float)BlendMode.One);
-        m.SetFloat("_DstBlend", (float)BlendMode.One);
+        m.SetFloat("_Blend", additive ? 2f : 0f);
+        m.SetFloat("_SrcBlend", additive ? (float)BlendMode.One : (float)BlendMode.SrcAlpha);
+        m.SetFloat("_DstBlend", additive ? (float)BlendMode.One : (float)BlendMode.OneMinusSrcAlpha);
         m.SetFloat("_ZWrite", 0f);
         m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         m.renderQueue = (int)RenderQueue.Transparent;

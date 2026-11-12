@@ -75,7 +75,13 @@ public static class SwordLightSceneBuilder
         Material m = AssetDatabase.LoadAssetAtPath<Material>(MATERIAL_PATH);
         if (m == null)
         {
-            m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (shader == null)
+            {
+                Debug.LogError("[SwordLightSceneBuilder] URP の Particles/Unlit のシェーダーが見つからないので、輪のマテリアルを作らなかった");
+                return;
+            }
+            m = new Material(shader);
             // インスペクターで Surface Type = Transparent、Blending Mode = Additive を選ぶのと同じ設定
             m.SetFloat("_Surface", 1f);
             m.SetFloat("_Blend", 2f);

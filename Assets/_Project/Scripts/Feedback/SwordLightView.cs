@@ -31,6 +31,8 @@ public sealed class SwordLightView : MonoBehaviour
     [SerializeField] LineRenderer timerRing;
 
     bool planted;
+    // ゲームが終わったら、次のウェーブが始まるまで光を出さない
+    bool ended;
     Vector3 plantedAt;
     float plantedTime;
     int swarm;
@@ -55,6 +57,8 @@ public sealed class SwordLightView : MonoBehaviour
         GameEvents.SlashStarted += OnSlashStarted;
         GameEvents.SwarmCountChanged += OnSwarmCountChanged;
         GameEvents.GameOver += OnGameOver;
+        GameEvents.WaveStarted += OnWaveStarted;
+        SyncPlanted();
     }
 
     void OnDisable()
@@ -63,10 +67,28 @@ public sealed class SwordLightView : MonoBehaviour
         GameEvents.SlashStarted -= OnSlashStarted;
         GameEvents.SwarmCountChanged -= OnSwarmCountChanged;
         GameEvents.GameOver -= OnGameOver;
+        GameEvents.WaveStarted -= OnWaveStarted;
+    }
+
+    /// <summary>
+    /// オフの間に刺さった、抜けたを取りこぼしても、オンになったときに今の状態へ合わせる。
+    /// 刀の状態は髙橋さんが GameContext に書く。主人公がいないテスト用のシーンでは書かれないので、イベントで受けた状態のままにする
+    /// </summary>
+    void SyncPlanted()
+    {
+        if (GameContext.IsSwordPlanted)
+        {
+            if (!planted) OnSwordPlanted(GameContext.SwordPosition);
+        }
+        else if (GameContext.PlayerTransform != null)
+        {
+            Unplant();
+        }
     }
 
     void OnSwordPlanted(Vector3 position)
     {
+        if (ended) return;
         planted = true;
         plantedAt = position;
         plantedTime = 0f;
@@ -80,9 +102,13 @@ public sealed class SwordLightView : MonoBehaviour
 
     void OnGameOver()
     {
+        ended = true;
         Unplant();
         if (swordLight != null) swordLight.enabled = false;
     }
+
+    // 同じシーンで次のラウンドを始めたら、また光を出す
+    void OnWaveStarted(int wave) => ended = false;
 
     void Unplant()
     {
@@ -92,7 +118,8 @@ public sealed class SwordLightView : MonoBehaviour
 
     void Update()
     {
-        if (tuning == null) return;
+        // 終わったあとは光を点け直さない
+        if (tuning == null || ended) return;
         float dt = Time.deltaTime;
         UpdateFlicker(dt);
 

@@ -7,8 +7,9 @@ using UnityEngine;
 /// 髙橋さんと三條さんは Feedback.PlaySe(SeId.Slash, pos) のように呼ぶだけで鳴る。
 /// どの音とエフェクトを出すかは FeedbackTuning で選ぶので、素材を差し替えてもコードは変わらない。
 ///
-/// 自分でイベントを受けて鳴らすのは、増永が足した音と、連携ガイドで増永が出すことになっているものだけ
-/// (落ちる音と光の粒、踏みとどまる音、ウェーブ開始の音)。主人公まわりの音とエフェクトは髙橋さんが呼ぶので、ここでは鳴らさない(二重になるため)。
+/// 自分でイベントを受けて出すのは、増永が足した音と、連携ガイドで増永が出すことになっているものだけ
+/// (落ちる音と光の粒、踏みとどまる音、ウェーブ開始の音、吹き飛ぶ敵の残光)。
+/// 敵が白く光るのと縁で揺れるのは、三條さんの EnemyActionAnimation が同じイベントで出しているので、ここでは出さない(二重になるため)。主人公まわりの音とエフェクトは髙橋さんが呼ぶので、ここでは鳴らさない(二重になるため)。
 /// </summary>
 public sealed class FeedbackService : MonoBehaviour, IFeedbackService
 {
@@ -19,6 +20,10 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     [SerializeField, Min(1)] int voiceCount = 16;
 
     AudioSource[] voices;
+    // それぞれの声を鳴らし始めた実時間。全部が鳴っているときに、いちばん前に鳴らし始めたものを止めるため
+    // 鳴らし始めた順番(大きいほど新しい)。時刻だと同じフレームで鳴らした音が同じ値になり、古さを比べられないため連番にする
+    long[] voiceStartedOrder;
+    long playCount;
     int nextVoice;
 
     // 一振りの中で何回目の当たりの音か、何回目の縁を越える音か。斬り抜けが始まるたびに 0 に戻し、数に応じて音を高くする
@@ -35,6 +40,7 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     {
         // 1つの AudioSource で1つの音を鳴らす。PlayOneShot だと、後から pitch を変えたときに鳴っている音まで変わってしまうため
         voices = new AudioSource[voiceCount];
+        voiceStartedOrder = new long[voiceCount];
         for (int i = 0; i < voiceCount; i++)
         {
             AudioSource source = gameObject.AddComponent<AudioSource>();
@@ -47,7 +53,10 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     void OnEnable()
     {
         Feedback.Service = this;
+        // 残光の黒い雷を描くマテリアルを渡す(エフェクトを作る前は空なので、そのときは雷を出さない)
+        if (tuning != null) BlackBolt.Configure(tuning.BoltCoreMaterial, tuning.BoltRimMaterial);
         GameEvents.SlashStarted += OnSlashStarted;
+        GameEvents.EnemyHit += OnEnemyHit;
         GameEvents.EnemyFell += OnEnemyFell;
         GameEvents.EnemyTeetered += OnEnemyTeetered;
         GameEvents.WaveStarted += OnWaveStarted;
@@ -58,6 +67,7 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         // 別の中身に入れ替わっていたら消さない
         if (ReferenceEquals(Feedback.Service, this)) Feedback.Service = null;
         GameEvents.SlashStarted -= OnSlashStarted;
+        GameEvents.EnemyHit -= OnEnemyHit;
         GameEvents.EnemyFell -= OnEnemyFell;
         GameEvents.EnemyTeetered -= OnEnemyTeetered;
         GameEvents.WaveStarted -= OnWaveStarted;
@@ -123,7 +133,9 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         AudioClip clip = entry.Clips[Random.Range(0, entry.Clips.Length)];
         if (clip == null) return;
 
-        AudioSource source = PickVoice();
+        int index = PickVoice();
+        AudioSource source = voices[index];
+        voiceStartedOrder[index] = ++playCount;
         source.clip = clip;
         source.volume = entry.Volume;
         source.pitch = pitch * (1f + Random.Range(-entry.PitchJitter, entry.PitchJitter));
@@ -131,20 +143,25 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     }
 
     /// <summary>
-    /// 鳴らす AudioSource を選ぶ。まず鳴り終わっているものを探し、全部鳴っているときだけ、いちばん前に使ったものを止めて使う。
-    /// 順番だけで選ぶと、空きがあるのに長い音(雷など)を途中で切ってしまうため
+    /// 鳴らす AudioSource の番号を選ぶ。まず鳴り終わっているものを探し、全部鳴っているときだけ、いちばん前に鳴らし始めたものを止めて使う。
+    /// 順番だけで選ぶと、空きがあるのに長い音(雷など)を途中で切ってしまうため。
+    /// 古さは鳴らし始めた連番で比べる(空きを使うと順番と鳴らした順がずれるので、順番では古さが分からない)
     /// </summary>
-    AudioSource PickVoice()
+    int PickVoice()
     {
         for (int i = 0; i < voices.Length; i++)
         {
             int index = (nextVoice + i) % voices.Length;
             if (voices[index].isPlaying) continue;
             nextVoice = (index + 1) % voices.Length;
-            return voices[index];
+            return index;
         }
-        AudioSource oldest = voices[nextVoice];
-        nextVoice = (nextVoice + 1) % voices.Length;
+        int oldest = 0;
+        for (int i = 1; i < voices.Length; i++)
+        {
+            if (voiceStartedOrder[i] < voiceStartedOrder[oldest]) oldest = i;
+        }
+        nextVoice = (oldest + 1) % voices.Length;
         return oldest;
     }
 
@@ -189,6 +206,19 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         // 新しい一振りなので、音の高さを1段目に戻す
         hitStep = 0;
         edgeStep = 0;
+    }
+
+    /// <summary>
+    /// 吹き飛んだ敵に残光(FlightTrail)を付ける。敵を動かすのは三條さんのコードなので、残光は位置の変化を見て描くだけ。
+    /// 付けるのは敵の根っこ(位置を持つ所)。見た目の子は三條さんが傾けているので触らない
+    /// </summary>
+    void OnEnemyHit(EnemyHitInfo info)
+    {
+        Transform enemy = info.Enemy != null ? info.Enemy.Transform : null;
+        if (enemy == null || tuning == null) return;
+        FlightTrail trail = enemy.GetComponent<FlightTrail>();
+        if (trail == null) trail = enemy.gameObject.AddComponent<FlightTrail>();
+        trail.Begin(tuning);
     }
 
     // 落ちる音(Fall)は増永が足した ID なので、三條さんは呼ばない。光の粒も連携ガイドで増永が出すことになっている
