@@ -37,9 +37,9 @@ public static class FenceRoundChecks
         output=SessionState.GetString(KEY+".out","");results.Clear();results.Add("Prefab point position and enabled state survive save/reload");active=true;stage=0;
         var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=Vector3.down*.1f;floor.transform.localScale=new Vector3(30,.2f,30);
         wall=GameObject.CreatePrimitive(PrimitiveType.Cube);wall.layer=2;wall.transform.position=Vector3.up;wall.transform.localScale=new Vector3(.2f,4,10);
+        deadline=EditorApplication.timeSinceStartup+15;EditorApplication.update+=Tick;
         actor=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/FloatingShadowEnemy.prefab"),new Vector3(-.3f,0,0),Quaternion.identity).GetComponent<Enemy>();
         actor.GetComponent<EnemyPursuit>().enabled=false;actor.GetComponent<EnemyAutoAttack>().enabled=false;Physics.SyncTransforms();
-        deadline=EditorApplication.timeSinceStartup+15;EditorApplication.update+=Tick;
     }
     static void Tick()
     {
