@@ -24,7 +24,8 @@ public sealed class FlightTrail : MonoBehaviour
         enabled = true;
     }
 
-    void Update()
+    // 敵が Update で動いたあとに測るため LateUpdate にする。Update だと順番しだいで前のフレームの移動量を今のフレームの時間で割ってしまう
+    void LateUpdate()
     {
         float dt = Time.deltaTime;
         if (tuning == null || dt <= 0f) return;   // ヒットストップ中は何もしない
