@@ -69,7 +69,8 @@ public static class MeiSceneBuilder
 
     /// <summary>
     /// 銘の選択画面をもう作ってあるシーンに、大銘「震」を足す。
-    /// 調整値のアセットはもう作ってあるので、コードの初期値は入らない。大銘を候補に出す設定と、効果の無い残光と引力を外す設定もここで入れる。
+    /// 調整値のアセットはもう作ってあるので、コードの初期値は入らない。大銘を候補に出す設定だけはここで入れる。
+    /// どの大銘を候補に出すか(enabled)は髙橋さんも調整値で直しているので、ここでは触らない
     /// </summary>
     [MenuItem("Hitofuri/増永/大銘「震」を置く")]
     static void BuildShin()
@@ -82,7 +83,7 @@ public static class MeiSceneBuilder
         }
         MeiTuning meiTuning = LoadOrCreate<MeiTuning>("MeiTuning");
         AddShin(mei.gameObject, meiTuning);
-        OfferOnlyKaeshiAndShin(meiTuning);
+        EnableMajorMeiOffer(meiTuning);
         Selection.activeGameObject = mei.gameObject;
         Debug.Log("[MeiSceneBuilder] 大銘「震」を置いた。再生して 0(震を刻む)、Y(試しの敵を置く)、U(斬り抜けが終わったことにする)で試せる");
     }
@@ -98,17 +99,10 @@ public static class MeiSceneBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
-    static void OfferOnlyKaeshiAndShin(MeiTuning meiTuning)
+    static void EnableMajorMeiOffer(MeiTuning meiTuning)
     {
         SerializedObject so = new SerializedObject(meiTuning);
         so.FindProperty("offerMajorMei").boolValue = true;
-        SerializedProperty list = so.FindProperty("majorMeis");
-        for (int i = 0; i < list.arraySize; i++)
-        {
-            SerializedProperty def = list.GetArrayElementAtIndex(i);
-            MajorMeiId id = (MajorMeiId)def.FindPropertyRelative("id").enumValueIndex;
-            def.FindPropertyRelative("enabled").boolValue = id == MajorMeiId.Kaeshi || id == MajorMeiId.Shin;
-        }
         so.ApplyModifiedProperties();
         EditorUtility.SetDirty(meiTuning);
         AssetDatabase.SaveAssets();
