@@ -38,6 +38,12 @@ public static class GameContext
     /// </summary>
     public static float AutoReturnLimit { get; set; }
 
+    /// <summary>
+    /// 今の遊び方。書くのは増永さん(タイトル)。シーンをまたいで残るので、結果画面の「もう一度」は同じ遊び方で始まる。
+    /// ウェーブ、得点、銘の各担当が、主人公やタイトルのクラスを参照せずに分岐できるようにここに置く
+    /// </summary>
+    public static GameMode Mode { get; set; }
+
     // ドメインリロードを切った再生でも、前回の状態が残らないようにする
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay()
@@ -48,5 +54,6 @@ public static class GameContext
         SwordPosition = Vector3.zero;
         AutoReturnRemaining = 0f;
         AutoReturnLimit = 0f;
+        Mode = GameMode.Clear;
     }
 }

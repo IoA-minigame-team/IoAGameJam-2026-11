@@ -85,9 +85,11 @@ public static class TitleResultSceneBuilder
         RectTransform buttonRow = Place(Rect("Buttons", content), new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -560), new Vector2(1000, 110));
         Button start = NewButton(buttonRow, "StartButton", "始める", 56, new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(400, 108));
         start.GetComponentInChildren<TextMeshProUGUI>().gameObject.AddComponent<ZapTextEffect>();
-        Button howToOpen = NewButton(buttonRow, "HowToButton", "遊び方", 42, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(430, 0), new Vector2(300, 92));
+        Button endless = NewButton(buttonRow, "EndlessButton", "果てなく", 42, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(430, 0), new Vector2(300, 92));
+        Button howToOpen = NewButton(buttonRow, "HowToButton", "遊び方", 42, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(760, 0), new Vector2(240, 92));
         reveal.Add(buttonRow.gameObject.AddComponent<CanvasGroup>());
-        TextMeshProUGUI best = Text(content, "Best", "まだ記録はありません。", 26, ASH, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -700), new Vector2(1000, 44));
+        // 果てなくの記録を2行目に出すので、2行分の高さを取る
+        TextMeshProUGUI best = Text(content, "Best", "まだ記録はありません。", 26, ASH, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -700), new Vector2(1000, 88));
         reveal.Add(best.gameObject.AddComponent<CanvasGroup>());
 
         // 主人公が斬ったときに、画面の端から端へ走る斬り跡
@@ -105,6 +107,7 @@ public static class TitleResultSceneBuilder
         TitleScreen screen = canvas.gameObject.AddComponent<TitleScreen>();
         Wire(screen, "tuning", feedbackTuning);
         Wire(screen, "startButton", start);
+        Wire(screen, "endlessButton", endless);
         Wire(screen, "bestText", best);
         Wire(screen, "logoSlash", logoSlash);
         Wire(screen, "screenSlash", screenSlash);
@@ -308,10 +311,10 @@ public static class TitleResultSceneBuilder
         TextMeshProUGUI sub = Text(box, "Sub", "全五波", 26, ASH, TextAlignmentOptions.TopRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(0, -16), new Vector2(500, 40));
         Img(box, "HeadLine", FRAME).rectTransform.SetFrom(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -90), new Vector2(1500, 2));
 
-        Text(box, "MaxLabel", "一振り最多", 24, ASH, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -130), new Vector2(400, 36), true);
+        TextMeshProUGUI maxLabel = Text(box, "MaxLabel", "一振り最多", 24, ASH, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -130), new Vector2(400, 36), true);
         TextMeshProUGUI maxSwing = Text(box, "MaxSwing", "0", 300, PAPER, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(-10, -150), new Vector2(560, 320), true);
         maxSwing.gameObject.AddComponent<ZapTextEffect>();
-        Text(box, "Unit", "体", 60, PAPER, TextAlignmentOptions.BottomLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(520, -360), new Vector2(120, 90));
+        TextMeshProUGUI unit = Text(box, "Unit", "体", 60, PAPER, TextAlignmentOptions.BottomLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(520, -360), new Vector2(120, 90));
         TextMeshProUGUI title = Text(box, "Title", "素振り", 180, PAPER, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -480), new Vector2(800, 220), true);
         title.characterSpacing = 20;
         title.gameObject.AddComponent<ZapTextEffect>();
@@ -323,10 +326,11 @@ public static class TitleResultSceneBuilder
 
         string[] labels = { "得点", "最大連鎖", "落とした数", "刻んだ大銘" };
         TextMeshProUGUI[] values = new TextMeshProUGUI[4];
+        TextMeshProUGUI[] statLabels = new TextMeshProUGUI[4];
         for (int i = 0; i < 4; i++)
         {
             float y = -260 - i * 90;
-            Text(box, "StatLabel" + i, labels[i], 28, ASH, TextAlignmentOptions.Left, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-300, y), new Vector2(300, 60));
+            statLabels[i] = Text(box, "StatLabel" + i, labels[i], 28, ASH, TextAlignmentOptions.Left, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-300, y), new Vector2(300, 60));
             values[i] = Text(box, "StatValue" + i, "0", 44, PAPER, TextAlignmentOptions.Right, new Vector2(1, 1), new Vector2(1, 1), new Vector2(0, y), new Vector2(300, 60), true);
             Img(box, "StatLine" + i, FRAME).rectTransform.SetFrom(new Vector2(1, 1), new Vector2(1, 1), new Vector2(0, y - 66), new Vector2(600, 2));
         }
@@ -343,6 +347,9 @@ public static class TitleResultSceneBuilder
         Wire(screen, "titleSlash", titleSlash);
         Wire(screen, "newBestBadge", badge.gameObject);
         Wire(screen, "scoreText", values[0]);
+        Wire(screen, "bigLabelText", maxLabel);
+        Wire(screen, "bigUnitText", unit);
+        Wire(screen, "scoreLabelText", statLabels[0]);
         Wire(screen, "chainText", values[1]);
         Wire(screen, "fallsText", values[2]);
         Wire(screen, "majorText", values[3]);

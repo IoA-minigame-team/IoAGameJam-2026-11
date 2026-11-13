@@ -15,10 +15,11 @@ public sealed class WaveController : MonoBehaviour
     [SerializeField] GameOverController gameOver;
     [SerializeField] bool startAutomatically = true;
     [SerializeField] bool autoAdvance = true;
-    // 添字は「現在の波の出現グループ」。remaining=未出現数、due=次に出す時刻。
+    // 添字は「現在の波の出現グループ」。remaining=未出現数、due=次に出す時刻、intervals=果てなくの強化を反映した間隔。
+    EnemyWavePlan.Batch[] currentBatches;
     GameObject[] chosenPrefabs;
     int[] remaining;
-    float[] due, blockedSince;
+    float[] due, blockedSince, intervals;
     float elapsed, delay;
     bool startPending;
     int queuedStartWave = 1;
@@ -32,6 +33,8 @@ public sealed class WaveController : MonoBehaviour
     public EnemySpawner Spawner => spawner;
     public EnemyWavePlan Plan => plan;
     public bool AutoAdvance { get => autoAdvance;set => autoAdvance = value; }
+    /// <summary>果てなく(エンドレス)か。タイトルで選んだ遊び方をGameContextから読む</summary>
+    public bool IsEndless => GameContext.Mode == GameMode.Endless;
 
     void Awake()
     {
@@ -68,6 +71,7 @@ public sealed class WaveController : MonoBehaviour
     bool ValidatePlan()
     {
         if (plan == null || TotalWaves == 0 || spawner == null) { Fault("Wave plan or EnemySpawner is missing.");return false; }
+        if (IsEndless && plan.EndlessLoopFrom > TotalWaves) { Fault("Endless loop start is beyond the last wave.");return false; }
         if (spawner.Plan != plan) { Fault("WaveController and EnemySpawner must use the same EnemyWavePlan.");return false; }
         foreach (var wave in plan.Waves)
         {
@@ -103,7 +107,7 @@ public sealed class WaveController : MonoBehaviour
         if (State != WaveState.Spawning) return;
         // 時刻は停止中には進めない。WaveStartedを受けたUIが開始演出でPauseしても先に出現しない。
         elapsed += dt;
-        var batches = plan.Waves[CurrentWaveNumber - 1].Batches;
+        var batches = currentBatches;
         int budget = plan.MaxSpawnsPerFrame;
         for (int i = 0; i < batches.Length && budget > 0 && State == WaveState.Spawning; i++)
         {
@@ -118,7 +122,7 @@ public sealed class WaveController : MonoBehaviour
                     due[i] = elapsed + plan.RetryInterval;break;
                 }
                 chosenPrefabs[i]=null;remaining[i]--;PendingCount--;SpawnedThisWave++;budget--;blockedSince[i] = -1;
-                due[i] += batches[i].Interval;
+                due[i] += intervals[i];
             }
         }
         if (PendingCount == 0 && State == WaveState.Spawning) State = WaveState.WaitingForEnemies;
@@ -131,7 +135,8 @@ public sealed class WaveController : MonoBehaviour
         if (spawner.HasUnexpectedRemoval) { Fault(spawner.LastFailure);return; }
         if (spawner.AliveCount != 0) return;
         // EnemyFellの通知チェーンが終わってから完了する。未出現の予定が残る間も完了させない。
-        State = CurrentWaveNumber == TotalWaves ? WaveState.Completed : WaveState.Intermission;
+        // 果てなくでは最後の波で終わらず、次の波へ進む
+        State = !IsEndless && CurrentWaveNumber >= TotalWaves ? WaveState.Completed : WaveState.Intermission;
         delay = plan.InterWaveDelay;
         GameEvents.RaiseWaveCleared(CurrentWaveNumber);
     }
@@ -139,11 +144,41 @@ public sealed class WaveController : MonoBehaviour
     {
         // 予定数と現在番号を先に確定してから通知する。購読先のUIが最新の残数を読める順序にする。
         CurrentWaveNumber = number;SpawnedThisWave = PendingCount = 0;elapsed = 0;
-        var batches = plan.Waves[number - 1].Batches;
-        chosenPrefabs = new GameObject[batches.Length];remaining = new int[batches.Length];due = new float[batches.Length];blockedSince = new float[batches.Length];
-        for (int i = 0; i < batches.Length; i++) { remaining[i] = batches[i].Count;PendingCount += remaining[i];due[i] = batches[i].Delay;blockedSince[i] = -1; }
+        var batches = currentBatches = ResolveWave(number, out int lap);
+        chosenPrefabs = new GameObject[batches.Length];remaining = new int[batches.Length];due = new float[batches.Length];blockedSince = new float[batches.Length];intervals = new float[batches.Length];
+        for (int i = 0; i < batches.Length; i++)
+        {
+            remaining[i] = ScaledCount(batches[i], lap);PendingCount += remaining[i];due[i] = batches[i].Delay;blockedSince[i] = -1;
+            intervals[i] = ScaledInterval(batches[i], lap);
+        }
         State = WaveState.Spawning;
         GameEvents.RaiseWaveStarted(number);
+    }
+    /// <summary>
+    /// 波番号から元にする波と周回数を決める。データにある波はそのまま(lap=0)。
+    /// それより後は EndlessLoopFrom から最後までを順に繰り返す。既定では第6波=第4波の1周目、第7波=第5波の1周目、第8波=第4波の2周目。
+    /// </summary>
+    EnemyWavePlan.Batch[] ResolveWave(int number, out int lap)
+    {
+        lap = 0;
+        if (number <= TotalWaves) return plan.Waves[number - 1].Batches;
+        int from = Mathf.Min(plan.EndlessLoopFrom, TotalWaves);
+        int loopLength = TotalWaves - from + 1;
+        int past = number - TotalWaves - 1;
+        lap = past / loopLength + 1;
+        return plan.Waves[from - 1 + past % loopLength].Batches;
+    }
+    int ScaledCount(EnemyWavePlan.Batch batch, int lap)
+    {
+        if (lap == 0) return batch.Count;
+        // 元の数が上限より多いときは元の数を下回らせない
+        int grown = Mathf.CeilToInt(batch.Count * (1f + plan.EndlessCountGrowth * lap));
+        return Mathf.Max(batch.Count, Mathf.Min(plan.EndlessMaxCount, grown));
+    }
+    float ScaledInterval(EnemyWavePlan.Batch batch, int lap)
+    {
+        if (lap == 0) return batch.Interval;
+        return Mathf.Max(Mathf.Min(batch.Interval, plan.EndlessMinInterval), batch.Interval * Mathf.Pow(plan.EndlessIntervalScale, lap));
     }
     public bool AdvanceNow()
     {

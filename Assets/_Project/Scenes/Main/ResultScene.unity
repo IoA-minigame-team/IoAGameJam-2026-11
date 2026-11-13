@@ -3843,6 +3843,9 @@ MonoBehaviour:
   chainText: {fileID: 869515942}
   fallsText: {fileID: 338465373}
   majorText: {fileID: 1853998544}
+  bigLabelText: {fileID: 1021454547}
+  bigUnitText: {fileID: 426738986}
+  scoreLabelText: {fileID: 107875599}
   retryButton: {fileID: 211335690}
   titleButton: {fileID: 27504099}
 --- !u!114 &1568962154

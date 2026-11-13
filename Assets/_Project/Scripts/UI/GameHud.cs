@@ -127,7 +127,8 @@ public sealed class GameHud : MonoBehaviour
     void SetWave(int wave)
     {
         waveText.text = $"第{KanjiNumber.Of(wave)}波";
-        waveCountText.text = $"{wave} / {tuning.TotalWaves}";
+        // 果てなくには終わりの波が無いので、全何波の代わりに遊び方の名前を出す
+        waveCountText.text = GameContext.Mode == GameMode.Endless ? "果てなく" : $"{wave} / {tuning.TotalWaves}";
     }
 
     public void ShowCallout(string title, string sub)

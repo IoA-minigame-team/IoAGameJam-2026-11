@@ -31,6 +31,8 @@ public sealed class BestRecordHud : MonoBehaviour
     void Awake()
     {
         best = testBest >= 0 ? testBest : (RecordStore.HasRecord ? RecordStore.BestMaxSwing : -1);
+        // 果てなくでは一振り最多の記録を更新しないので、更新の知らせも出さない
+        if (GameContext.Mode == GameMode.Endless && testBest < 0) best = -1;
         if (group != null) group.alpha = 0f;
     }
 
