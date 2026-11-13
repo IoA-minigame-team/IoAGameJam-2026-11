@@ -162,6 +162,25 @@ public sealed class PlayerTuning : ScriptableObject
     [Tooltip("肩越しカメラが見る位置の高さ(主人公の体の中心からの高さ、m)")]
     [SerializeField] float cinematicShoulderLookHeight = 0f;
 
+    [Header("斬り抜け演出の締めの文字")]
+    // 仕様にない演出なので仮の値。鍔が鳴る瞬間に叩きつけ、見下ろしへ戻る頃に消える長さにしてある
+    [Tooltip("鍔が鳴る瞬間に出す文字")]
+    [SerializeField] string finishTextLabel = "一網打尽";
+    [Tooltip("大きく出てから着地するまでの秒数(実時間)")]
+    [SerializeField, Min(0.01f)] float finishTextSlamTime = 0.12f;
+    [Tooltip("出た瞬間の大きさの倍率。着地で 1 になる")]
+    [SerializeField, Min(1f)] float finishTextStartScale = 2.2f;
+    [Tooltip("着地の揺れの秒数")]
+    [SerializeField, Min(0f)] float finishTextShakeTime = 0.15f;
+    [Tooltip("着地の揺れの大きさ(画面の px、1920x1080 基準)")]
+    [SerializeField, Min(0f)] float finishTextShakeAmount = 12f;
+    [Tooltip("斬り線が伸びきるまでの秒数。着地と同時に走り始める")]
+    [SerializeField, Min(0.01f)] float finishTextSlashTime = 0.18f;
+    [Tooltip("着地してから薄れ始めるまでの秒数")]
+    [SerializeField, Min(0f)] float finishTextHold = 0.9f;
+    [Tooltip("薄れて消えるまでの秒数")]
+    [SerializeField, Min(0.01f)] float finishTextFade = 0.3f;
+
     [Header("見た目")]
     // 見た目の値は仕様にないので仮の値。手触りを見ながら決める
     [Tooltip("アニメーションを切り替えるときのクロスフェード(秒)")]
@@ -236,6 +255,14 @@ public sealed class PlayerTuning : ScriptableObject
     public float CinematicShoulderHeight => cinematicShoulderHeight;
     public float CinematicShoulderLookAhead => cinematicShoulderLookAhead;
     public float CinematicShoulderLookHeight => cinematicShoulderLookHeight;
+    public string FinishTextLabel => finishTextLabel;
+    public float FinishTextSlamTime => finishTextSlamTime;
+    public float FinishTextStartScale => finishTextStartScale;
+    public float FinishTextShakeTime => finishTextShakeTime;
+    public float FinishTextShakeAmount => finishTextShakeAmount;
+    public float FinishTextSlashTime => finishTextSlashTime;
+    public float FinishTextHold => finishTextHold;
+    public float FinishTextFade => finishTextFade;
     public float AnimationCrossFade => animationCrossFade;
     public float SlashCrossFade => slashCrossFade;
     public float RunBlendSpeed => runBlendSpeed;
