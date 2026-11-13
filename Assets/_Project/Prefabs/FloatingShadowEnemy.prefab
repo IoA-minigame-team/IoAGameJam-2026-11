@@ -129,7 +129,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3355108643347810804}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ReactionPivot
   m_TagString: Untagged
   m_Icon: {fileID: 0}

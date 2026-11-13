@@ -276,7 +276,7 @@ public sealed class Enemy : MonoBehaviour, ILaunchable
         fallStartHeight = transform.position.y;
         if (bodyCollider != null) bodyCollider.enabled = false;
         EnemyMotionEvents.RaiseFalling(this);
-         // 消滅時のEnemyFellとは別に、縁を越えた瞬間の音を共有窓口へ1回だけ依頼する。
+        // 消滅時のEnemyFellとは別に、縁を越えた瞬間の音を共有窓口へ1回だけ依頼する。
         Feedback.PlaySe(SeId.EdgeCross, transform.position);
     }
 

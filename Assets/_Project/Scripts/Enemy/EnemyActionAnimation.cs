@@ -35,6 +35,8 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     public bool IsDefending { get; private set; }
     public bool IsStoppedByGameOver { get; private set; }
     public bool IsReacting => reaction != ReactionMode.None;
+    bool CanGuard => launchable is Enemy enemy && enemy.Tuning != null
+        && enemy.Tuning.HasShield && enemy.Tuning.BehaviourRole == EnemyBehaviourRole.ShieldBearer;
 
     void Awake()
     {
@@ -58,6 +60,8 @@ public sealed class EnemyActionAnimation : MonoBehaviour
 
     void OnEnable()
     {
+        // 再読み込み・再有効化の後も、実際の敵設定からガード可否を読み直す。
+        launchable = GetComponent<ILaunchable>();
         GameEvents.GameOver += OnGameOver;
         GameEvents.GlowChanged += OnGlowChanged;
         GameEvents.EnemyTeetered += OnTeetered;
@@ -107,14 +111,16 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     void OnGuardChanged(ILaunchable source, bool value)
     {
         if (!Owns(source)) return;
-        requestedGuard = value;
-        if (!IsReacting) SetDefending(value);
+        // 外部から一括でガード通知が来ても、盾なしの敵には予約を残さない。
+        requestedGuard = value && CanGuard;
+        if (!IsReacting) SetDefending(requestedGuard);
     }
     void OnAttackStarted(ILaunchable source) { if (Owns(source)) PlayAttack(); }
 
     void LateUpdate()
     {
         if (spawnPending) { spawnPending = false; PlaySpawn(); }
+        if (!CanGuard) requestedGuard = false;
         if (!IsReacting && requestedGuard != IsDefending) SetDefending(requestedGuard);
         if (IsStoppedByGameOver)
         {
@@ -124,6 +130,7 @@ public sealed class EnemyActionAnimation : MonoBehaviour
             if (head != null) head.localRotation = frozenHead;
             return;
         }
+        EnforceGuardMotionPolicy();
         if (reaction == ReactionMode.None) return;
         if (reactionTuning == null || reactionPivot == null)
         {
@@ -168,10 +175,31 @@ public sealed class EnemyActionAnimation : MonoBehaviour
         if (head != null) head.localRotation = headRest * Quaternion.Euler(-12f, 0, 0);
     }
 
+    void EnforceGuardMotionPolicy()
+    {
+        if (CanGuard || !CanPlay()) return;
+        requestedGuard = false;
+        IsDefending = false;
+        // 入口の制限だけでは、再読み込み前のDefenseやAnimatorへの直接指示が残り得る。
+        animator.SetBool(DEFENDING, false);
+        bool defendingNow = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DEFENSE;
+        bool enteringDefense = animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).shortNameHash == DEFENSE;
+        if (defendingNow || enteringDefense) animator.Play(IDLE, 0, 0f);
+        // Attack/Spawn中は状態を変更せず、そのまま再生を続ける。
+    }
+
     public void SetDefending(bool defending)
     {
+        // デモや別スクリプトから直接呼ばれた場合も、ガード可能な種類に限定する。
+        defending = defending && CanGuard;
         if (!CanPlay() || IsReacting) return;
         requestedGuard = defending;
+        // 盾なしへのガード指示を無視するとき、再生中の攻撃までIdleで中断しない。
+        if (!defending && !IsDefending)
+        {
+            animator.SetBool(DEFENDING, false);
+            return;
+        }
         IsDefending = defending;
         animator.SetBool(DEFENDING, defending);
         animator.CrossFadeInFixedTime(defending ? DEFENSE : IDLE, transitionDuration);
