@@ -20,6 +20,8 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     [SerializeField, Min(0f)] float transitionDuration = .08f;
     [SerializeField] Transform reactionPivot;
     [SerializeField] EnemyTuning reactionTuning;
+    [Tooltip("OFFでは防御モーションを再生しません。正面ガードの判定はEnemyTuningのHas Shieldで設定します。")]
+    [SerializeField, InspectorName("ガードモーションを有効にする")] bool enableGuardMotion;
     Transform leftArm, rightArm, head;
     Quaternion leftArmRest, rightArmRest, headRest, pivotRotation;
     Quaternion frozenLeftArm, frozenRightArm, frozenHead;
@@ -35,8 +37,8 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     public bool IsDefending { get; private set; }
     public bool IsStoppedByGameOver { get; private set; }
     public bool IsReacting => reaction != ReactionMode.None;
-    bool CanGuard => launchable is Enemy enemy && enemy.Tuning != null
-        && enemy.Tuning.HasShield && enemy.Tuning.BehaviourRole == EnemyBehaviourRole.ShieldBearer;
+    public bool GuardMotionEnabled => enableGuardMotion;
+    bool CanGuard => enableGuardMotion;
 
     void Awake()
     {
@@ -111,8 +113,9 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     void OnGuardChanged(ILaunchable source, bool value)
     {
         if (!Owns(source)) return;
-        // 外部から一括でガード通知が来ても、盾なしの敵には予約を残さない。
-        requestedGuard = value && CanGuard;
+        // 要求は保持し、表示のON/OFFだけをPrefabの設定で制限する。
+        // 実行中に設定をONへ戻しても、追跡側に同じ通知を送り直させない。
+        requestedGuard = value;
         if (!IsReacting) SetDefending(requestedGuard);
     }
     void OnAttackStarted(ILaunchable source) { if (Owns(source)) PlayAttack(); }
@@ -120,8 +123,9 @@ public sealed class EnemyActionAnimation : MonoBehaviour
     void LateUpdate()
     {
         if (spawnPending) { spawnPending = false; PlaySpawn(); }
-        if (!CanGuard) requestedGuard = false;
-        if (!IsReacting && requestedGuard != IsDefending) SetDefending(requestedGuard);
+        EnforceGuardMotionPolicy();
+        bool shouldDefend = requestedGuard && CanGuard;
+        if (!IsReacting && shouldDefend != IsDefending) SetDefending(requestedGuard);
         if (IsStoppedByGameOver)
         {
             // Animatorの停止だけではコードで加えた関節姿勢が戻るため、最後の見た目も保持する。
@@ -130,7 +134,6 @@ public sealed class EnemyActionAnimation : MonoBehaviour
             if (head != null) head.localRotation = frozenHead;
             return;
         }
-        EnforceGuardMotionPolicy();
         if (reaction == ReactionMode.None) return;
         if (reactionTuning == null || reactionPivot == null)
         {
@@ -168,17 +171,20 @@ public sealed class EnemyActionAnimation : MonoBehaviour
         }
         reactionPivot.localRotation = Quaternion.Slerp(reactionPivot.localRotation, Quaternion.AngleAxis(angle, axis) * pivotRotation, blend);
         reactionPivot.localPosition = pivotPosition + Vector3.up * hop;
-        // Animatorが通常姿勢を評価した後で腕を広げる。RootとColliderはこの姿勢に巻き込まない。
-        float arm = reaction == ReactionMode.Teeter ? -55f : 38f;
-        if (leftArm != null) leftArm.localRotation = leftArmRest * Quaternion.Euler(arm, 0, -22f);
-        if (rightArm != null) rightArm.localRotation = rightArmRest * Quaternion.Euler(arm, 0, 22f);
+        // ガードOFFの敵には、腕を構える共通被弾姿勢も適用しない。
+        // 腕はAnimatorの姿勢を使い、上で計算した体の傾き・跳ね・移動はそのまま残す。
+        if (CanGuard)
+        {
+            float arm = reaction == ReactionMode.Teeter ? -55f : 38f;
+            if (leftArm != null) leftArm.localRotation = leftArmRest * Quaternion.Euler(arm, 0, -22f);
+            if (rightArm != null) rightArm.localRotation = rightArmRest * Quaternion.Euler(arm, 0, 22f);
+        }
         if (head != null) head.localRotation = headRest * Quaternion.Euler(-12f, 0, 0);
     }
 
     void EnforceGuardMotionPolicy()
     {
         if (CanGuard || !CanPlay()) return;
-        requestedGuard = false;
         IsDefending = false;
         // 入口の制限だけでは、再読み込み前のDefenseやAnimatorへの直接指示が残り得る。
         animator.SetBool(DEFENDING, false);
@@ -190,19 +196,23 @@ public sealed class EnemyActionAnimation : MonoBehaviour
 
     public void SetDefending(bool defending)
     {
-        // デモや別スクリプトから直接呼ばれた場合も、ガード可能な種類に限定する。
-        defending = defending && CanGuard;
         if (!CanPlay() || IsReacting) return;
         requestedGuard = defending;
-        // 盾なしへのガード指示を無視するとき、再生中の攻撃までIdleで中断しない。
-        if (!defending && !IsDefending)
-        {
-            animator.SetBool(DEFENDING, false);
-            return;
-        }
+        defending = defending && CanGuard;
         IsDefending = defending;
         animator.SetBool(DEFENDING, defending);
-        animator.CrossFadeInFixedTime(defending ? DEFENSE : IDLE, transitionDuration);
+        var current = animator.GetCurrentAnimatorStateInfo(0);
+        var next = animator.IsInTransition(0) ? animator.GetNextAnimatorStateInfo(0) : default;
+        if (!defending)
+        {
+            // OFFにする対象はDefenseだけ。Attack/Spawnや吹き飛びを中断しない。
+            if (current.shortNameHash == DEFENSE || next.shortNameHash == DEFENSE)
+                animator.CrossFadeInFixedTime(IDLE, transitionDuration);
+            return;
+        }
+        // 攻撃中にONへ戻した場合は、攻撃を終えてから通常の遷移で防御へ入る。
+        if (current.shortNameHash != ATTACK && next.shortNameHash != ATTACK)
+            animator.CrossFadeInFixedTime(DEFENSE, transitionDuration);
     }
     public void PlayAttack()
     {

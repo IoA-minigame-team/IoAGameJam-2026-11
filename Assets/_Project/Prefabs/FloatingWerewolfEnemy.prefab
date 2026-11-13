@@ -76,6 +76,7 @@ MonoBehaviour:
   transitionDuration: 0.08
   reactionPivot: {fileID: 3523593066614742363}
   reactionTuning: {fileID: 11400000, guid: 3842f897778dc3944abc1b8c8472975e, type: 2}
+  enableGuardMotion: 0
 --- !u!114 &4918877389962596631
 MonoBehaviour:
   m_ObjectHideFlags: 0

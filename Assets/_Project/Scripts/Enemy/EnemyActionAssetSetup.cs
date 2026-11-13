@@ -163,6 +163,8 @@ public static class EnemyActionAssetSetup
         var driver = root.AddComponent<EnemyActionAnimation>();
         var serialized = new SerializedObject(driver);
         serialized.FindProperty("animator").objectReferenceValue = animator;
+        // 再生成後もPrefabの初期値をそろえる。調整用の切り替えは各EnemyActionAnimationで保持する。
+        serialized.FindProperty("enableGuardMotion").boolValue = name == "FloatingShieldEnemy";
         serialized.ApplyModifiedPropertiesWithoutUndo();
         EnemyLaunchAssetSetup.ConfigureEnemy(root, name);
         int layer = LayerMask.NameToLayer("Enemy");

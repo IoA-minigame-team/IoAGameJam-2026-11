@@ -85,7 +85,8 @@ public static class SlashResolver
         float halfWidth = tuning.LineWidth * mei.LineWidthMultiplier * 0.5f;
         if (halfWidth <= 0f) return direction;
 
-        // 線より少し大きい箱で候補を集め、正確な判定は下で敵の Position を使って行う
+        // 突進などで動いたTransformを反映し、その瞬間に斬撃へ触れているColliderを集める。
+        Physics.SyncTransforms();
         Vector3 center = (start + end) * 0.5f;
         Vector3 halfExtents = new Vector3(halfWidth, CHECK_HEIGHT * 0.5f, length * 0.5f + halfWidth);
         int count = Physics.OverlapBoxNonAlloc(
@@ -98,22 +99,42 @@ public static class SlashResolver
         for (int i = 0; i < count; i++)
         {
             // 斬り戻しの瞬間に1回だけ呼ぶので、GetComponent の重さは気にしなくてよい
-            ILaunchable enemy = colliderBuffer[i].GetComponentInParent<ILaunchable>();
+            Collider body = colliderBuffer[i];
+            ILaunchable enemy = body.GetComponentInParent<ILaunchable>();
             colliderBuffer[i] = null;
-            if (enemy == null || !seen.Add(enemy)) continue;
+            if (enemy == null || seen.Contains(enemy)) continue;
+
+            // 攻撃中の突進で本体の中心が線の端・幅を越えても、体が触れていれば命中にする。
+            // 攻撃モーションは除外条件にせず、正面ガードだけを下のIsShieldFacingで判定する。
+            float bodyAlong = Vector3.Dot(body.bounds.center - start, direction);
+            float bodyProgress = length >= MIN_LINE_LENGTH ? Mathf.Clamp01(bodyAlong / length) : 0f;
+            Vector3 pointOnLine = Vector3.Lerp(start, end, bodyProgress);
+            Vector3 gap = body.ClosestPoint(pointOnLine) - pointOnLine;
+            gap.y = 0f;
+            if (gap.sqrMagnitude > halfWidth * halfWidth) continue;
+            // 最初のColliderが範囲外でも、同じ敵の別Colliderは引き続き調べる。
+            seen.Add(enemy);
 
             Vector3 offset = enemy.Position - start;
             offset.y = 0f;
             float along = Vector3.Dot(offset, direction);
-            if (along < 0f || along > length) continue;
 
             float side = Vector3.Dot(offset, right);
             float absSide = Mathf.Abs(side);
-            if (absSide > halfWidth) continue;
 
-            float progress = length >= MIN_LINE_LENGTH ? along / length : 0f;
+            // 体だけが線の端へ掛かった場合も、呼び出し側へ0〜1の通過位置を返す。
+            float progress = length >= MIN_LINE_LENGTH ? Mathf.Clamp01(along / length) : 0f;
 
-            if (enemy.IsShieldFacing(direction))
+            Vector3 shieldCheckDirection = direction;
+            if (along < 0f || along > length || absSide > halfWidth)
+            {
+                // 体だけが触れた追加接触では、線の進行方向と刀がある側が逆になる場合がある。
+                // 刀を置いた始点から敵へ向かう方向で盾の表裏を調べ、正面への命中を防ぐ。
+                // 中心が従来の範囲内にある場合は、これまでの判定方向をそのまま使う。
+                if (offset.sqrMagnitude >= MIN_LINE_LENGTH * MIN_LINE_LENGTH)
+                    shieldCheckDirection = offset.normalized;
+            }
+            if (enemy.IsShieldFacing(shieldCheckDirection))
             {
                 shieldBlockedCount++;
                 firstShieldProgress = Mathf.Min(firstShieldProgress, progress);
@@ -121,7 +142,7 @@ public static class SlashResolver
             }
 
             // 0 が中央、1 が幅の端
-            float edge = absSide / halfWidth;
+            float edge = Mathf.Clamp01(absSide / halfWidth);
 
             // 中央ほど斬り抜ける向きへまっすぐ、端ほど敵がいる側へ逸らす
             float angle = tuning.EdgeDeflectAngle * edge * Mathf.Sign(side);
