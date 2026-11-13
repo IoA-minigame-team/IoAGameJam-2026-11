@@ -171,6 +171,19 @@ public sealed class FeedbackTuning : ScriptableObject
     [Tooltip("カードが持ち上がる、下がる速さ(px/秒、実時間)")]
     [SerializeField, Min(0.1f)] float meiCardLiftSpeed = 80f;
 
+    [Header("被弾の残り回数(ゲーム中の左上)")]
+    [Tooltip("最初の PlayerDamaged が届くまでに並べる印の数。髙橋さんの PlayerTuning の被弾の上限(3回)と同じにしておく")]
+    [SerializeField, Min(1)] int lifeSlots = 3;
+    [Tooltip("印の大きさと間隔(画面の 1920x1080 での px)")]
+    [SerializeField, Min(1f)] float lifeIconSize = 30f;
+    [SerializeField, Min(0f)] float lifeIconSpacing = 18f;
+    [Tooltip("印が割れて消えるまでの実時間(秒)")]
+    [SerializeField, Min(0.01f)] float lifeLoseTime = 0.45f;
+    [Tooltip("残りが1つになったとき、印が脈打つ速さ(回/秒)")]
+    [SerializeField, Min(0f)] float lifeLastPulse = 2.2f;
+    [Tooltip("被弾したとき、印の列が揺れる幅(px)")]
+    [SerializeField, Min(0f)] float lifeShake = 10f;
+
     [Header("シーン名(Build Settings に入れておく)")]
     [SerializeField] string titleSceneName = "TitleScene";
     [SerializeField] string gameSceneName = "GameScene";
@@ -218,6 +231,12 @@ public sealed class FeedbackTuning : ScriptableObject
     public float AutoReturnBase => autoReturnBase;
     public float AutoReturnPerSwarm => autoReturnPerSwarm;
     public float AutoReturnMin => autoReturnMin;
+    public int LifeSlots => lifeSlots;
+    public float LifeIconSize => lifeIconSize;
+    public float LifeIconSpacing => lifeIconSpacing;
+    public float LifeLoseTime => lifeLoseTime;
+    public float LifeLastPulse => lifeLastPulse;
+    public float LifeShake => lifeShake;
     public string TitleSceneName => titleSceneName;
     public string GameSceneName => gameSceneName;
     public string ResultSceneName => resultSceneName;
