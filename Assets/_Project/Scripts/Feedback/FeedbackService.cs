@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 揺れ、SE、エフェクトの中身(IFeedbackService の実装)。OnEnable で Feedback.Service に入るので、
@@ -36,6 +37,10 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
     // 最後に当たりの音を実際に鳴らした実時間。止まったコマのあとでも、間をあけて1つずつ鳴らすため
     float lastHitPlayed = float.NegativeInfinity;
 
+    // BGM は SE の声とは別に1つ持つ。SE が混んだときに古い声から止める仕組み(PickVoice)で、BGM まで止められないようにするため
+    AudioSource bgmSource;
+    float bgmTargetVolume;
+
     void Awake()
     {
         // 1つの AudioSource で1つの音を鳴らす。PlayOneShot だと、後から pitch を変えたときに鳴っている音まで変わってしまうため
@@ -48,6 +53,23 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
             source.spatialBlend = 0f;   // 見下ろしの固定カメラなので、左右の定位はつけない
             voices[i] = source;
         }
+
+        bgmSource = gameObject.AddComponent<AudioSource>();
+        bgmSource.playOnAwake = false;
+        bgmSource.loop = true;
+        bgmSource.spatialBlend = 0f;
+    }
+
+    void Start()
+    {
+        // シーンごとに FeedbackService が置かれていて、シーンを移ると一緒に破棄される。
+        // なので開いたシーンの曲を始めるだけでよく、止める処理は要らない
+        FeedbackTuning.BgmEntry entry = tuning != null ? tuning.FindBgm(SceneManager.GetActiveScene().name) : null;
+        if (entry == null || entry.Clip == null) return;
+        bgmTargetVolume = entry.Volume;
+        bgmSource.clip = entry.Clip;
+        bgmSource.volume = tuning.BgmFadeInDuration > 0f ? 0f : bgmTargetVolume;
+        bgmSource.Play();
     }
 
     void OnEnable()
@@ -81,12 +103,23 @@ public sealed class FeedbackService : MonoBehaviour, IFeedbackService
         // 1コマで鳴らすのは1つだけにし、前に実際に鳴らした時刻からも間をあける。
         // コマが長く止まって予定の時刻をいくつも過ぎても、同じコマでまとめて鳴って1つの音に潰れないようにするため
         float now = Time.unscaledTime;
+        FadeInBgm();
         float interval = tuning != null ? tuning.HitSeInterval : 0f;
         if (hitQueue.Count > 0 && hitQueue.Peek().Key <= now && now - lastHitPlayed >= interval)
         {
             Play(SeId.Hit, hitQueue.Dequeue().Value);
             lastHitPlayed = now;
         }
+    }
+
+    // ヒットストップや銘の選択で timeScale が 0 になってもフェードが止まらないよう、実時間で上げる
+    void FadeInBgm()
+    {
+        if (!bgmSource.isPlaying || bgmSource.volume >= bgmTargetVolume) return;
+        float duration = tuning != null ? tuning.BgmFadeInDuration : 0f;
+        bgmSource.volume = duration > 0f
+            ? Mathf.MoveTowards(bgmSource.volume, bgmTargetVolume, bgmTargetVolume / duration * Time.unscaledDeltaTime)
+            : bgmTargetVolume;
     }
 
     // ================= IFeedbackService =================

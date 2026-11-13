@@ -25,6 +25,19 @@ public sealed class FeedbackTuning : ScriptableObject
     }
 
     [Serializable]
+    public sealed class BgmEntry
+    {
+        [Tooltip("Build Settings に入れたシーン名(TitleScene、InGame など)")]
+        [SerializeField] string sceneName;
+        [SerializeField] AudioClip clip;
+        [SerializeField, Range(0f, 1f)] float volume = 0.5f;
+
+        public string SceneName => sceneName;
+        public AudioClip Clip => clip;
+        public float Volume => volume;
+    }
+
+    [Serializable]
     public sealed class VfxEntry
     {
         [SerializeField] VfxId id;
@@ -94,6 +107,12 @@ public sealed class FeedbackTuning : ScriptableObject
     [SerializeField, Min(0f)] float hitSeInterval = 0.055f;
     [Tooltip("縁を越える音を、一振りで落とすほど上げる半音の数(1体ごと)")]
     [SerializeField, Min(0f)] float edgeCrossSemitonePerFall = 1f;
+
+    [Header("BGM")]
+    [Tooltip("シーンごとの BGM。開いたシーンの名前と同じ行を鳴らす。シーンに置く物を増やさずに済むよう、FeedbackService から引く")]
+    [SerializeField] BgmEntry[] bgmEntries;
+    [Tooltip("BGM が鳴り始めてから決めた音量になるまでの実時間(秒)。シーンの切り替わりで急に鳴り出さないようにする")]
+    [SerializeField, Min(0f)] float bgmFadeInDuration = 1f;
 
     [Header("エフェクト")]
     [SerializeField] VfxEntry[] vfxEntries;
@@ -219,6 +238,7 @@ public sealed class FeedbackTuning : ScriptableObject
     public int[] HitPitchSemitones => hitPitchSemitones;
     public float HitSeInterval => hitSeInterval;
     public float EdgeCrossSemitonePerFall => edgeCrossSemitonePerFall;
+    public float BgmFadeInDuration => bgmFadeInDuration;
     public float ScoreCountSpeed => scoreCountSpeed;
     public float SwingHideDelay => swingHideDelay;
     public float CalloutDuration => calloutDuration;
@@ -279,6 +299,16 @@ public sealed class FeedbackTuning : ScriptableObject
         foreach (SeEntry entry in seEntries)
         {
             if (entry.Id == id) return entry;
+        }
+        return null;
+    }
+
+    public BgmEntry FindBgm(string sceneName)
+    {
+        if (bgmEntries == null) return null;
+        foreach (BgmEntry entry in bgmEntries)
+        {
+            if (entry.SceneName == sceneName) return entry;
         }
         return null;
     }

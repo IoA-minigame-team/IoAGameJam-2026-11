@@ -50,8 +50,8 @@ MonoBehaviour:
     pitchJitter: 0.03
   - id: 3
     clips:
-    - {fileID: 8300000, guid: daeb5fea71bfc1749a7749bc1763509f, type: 3}
-    volume: 0.75
+    - {fileID: 8300000, guid: 5b98e58190aaba441adc69b942d314b3, type: 3}
+    volume: 0.6
     pitchJitter: 0.01
   - id: 12
     clips:
@@ -85,12 +85,12 @@ MonoBehaviour:
     pitchJitter: 0.03
   - id: 2
     clips:
-    - {fileID: 8300000, guid: 0c952be291060ae4eb1bcd8f3accd511, type: 3}
-    volume: 0.6
+    - {fileID: 8300000, guid: c97305335940c7b4f99d87393b9225ca, type: 3}
+    volume: 0.8
     pitchJitter: 0.03
   - id: 1
     clips:
-    - {fileID: 8300000, guid: 66d81b7241846a74c96c621df9568d23, type: 3}
+    - {fileID: 8300000, guid: 97dc31d53e8a0e84586489cae53561e7, type: 3}
     volume: 0.6
     pitchJitter: 0.03
   - id: 9
@@ -124,8 +124,19 @@ MonoBehaviour:
     volume: 0.4
     pitchJitter: 0.03
   hitPitchSemitones: 00000000020000000400000007000000090000000c0000000e00000010000000
-  hitSeInterval: 0.055
+  hitSeInterval: 0.075
   edgeCrossSemitonePerFall: 1
+  bgmEntries:
+  - sceneName: TitleScene
+    clip: {fileID: 8300000, guid: ceadbd84e77b6ec459e102fcf1ceaae9, type: 3}
+    volume: 0.5
+  - sceneName: InGame
+    clip: {fileID: 8300000, guid: f71305b4ce007d74b95f9f3918b0fcbc, type: 3}
+    volume: 0.5
+  - sceneName: ResultScene
+    clip: {fileID: 8300000, guid: 8d2b27a9cac1f364ea1c3aac4381e266, type: 3}
+    volume: 0.5
+  bgmFadeInDuration: 1
   vfxEntries:
   - id: 1
     prefab: {fileID: 4485221808426005827, guid: d68890ce255ae5a4f89d51838e42d467, type: 3}
@@ -171,6 +182,8 @@ MonoBehaviour:
   calloutDuration: 1.5
   bannerDuration: 1.9
   resultDelay: 1.4
+  meiCardLiftHeight: 10
+  meiCardLiftSpeed: 80
   titleSceneName: TitleScene
   gameSceneName: GameScene
   resultSceneName: ResultScene
