@@ -165,6 +165,28 @@ public sealed class FeedbackTuning : ScriptableObject
     [Tooltip("ゲームの終わりからリザルトへ移るまでの実時間(秒)")]
     [SerializeField, Min(0f)] float resultDelay = 1.4f;
 
+    [Header("大量撃破の色反転")]
+    [Tooltip("一振りでこの数を落とした瞬間に、画面の色を一度反転する(断ちの 10 体に合わせる)")]
+    [SerializeField, Min(1)] int invertAt = 10;
+    [Tooltip("一振りでこの数を落とした瞬間は、二度反転する(一刀の 20 体に合わせる)")]
+    [SerializeField, Min(1)] int invertBigAt = 20;
+    [Tooltip("反転したまま止めておく実時間(秒)と、元に戻るまでの実時間(秒)")]
+    [SerializeField, Min(0f)] float invertHold = 0.06f;
+    [SerializeField, Min(0.01f)] float invertFade = 0.22f;
+    [Tooltip("二度反転するときの、1回目と2回目の間(秒)")]
+    [SerializeField, Min(0f)] float invertGap = 0.05f;
+    [Tooltip("反転の強さ。1 で完全に反転する")]
+    [SerializeField, Range(0f, 1f)] float invertStrength = 1f;
+
+    [Header("自己ベストの演出")]
+    [Tooltip("ゲーム中に一振り最多の自己ベストを超えたとき、知らせを出しておく実時間(秒)")]
+    [SerializeField, Min(0.1f)] float bestBannerTime = 2.2f;
+    [Tooltip("リザルトで、一振り最多を数え上げてから「自己ベスト更新」の印を押すまでの実時間(秒)")]
+    [SerializeField, Min(0f)] float bestStampDelay = 0.95f;
+    [Tooltip("印を押す動きの実時間(秒)と、押す前の大きさ(倍)")]
+    [SerializeField, Min(0.01f)] float bestStampTime = 0.16f;
+    [SerializeField, Min(1f)] float bestStampScale = 2.6f;
+
     [Header("銘の選択画面")]
     [Tooltip("選ばれているカードを持ち上げる高さ(px)")]
     [SerializeField, Min(0f)] float meiCardLiftHeight = 10f;
@@ -227,6 +249,16 @@ public sealed class FeedbackTuning : ScriptableObject
     public float TimerRingRadius => timerRingRadius;
     public float TimerUrgentSeconds => timerUrgentSeconds;
     public float RingWobble => ringWobble;
+    public int InvertAt => invertAt;
+    public int InvertBigAt => invertBigAt;
+    public float InvertHold => invertHold;
+    public float InvertFade => invertFade;
+    public float InvertGap => invertGap;
+    public float InvertStrength => invertStrength;
+    public float BestBannerTime => bestBannerTime;
+    public float BestStampDelay => bestStampDelay;
+    public float BestStampTime => bestStampTime;
+    public float BestStampScale => bestStampScale;
     public float LureRadius => lureRadius;
     public float AutoReturnBase => autoReturnBase;
     public float AutoReturnPerSwarm => autoReturnPerSwarm;
