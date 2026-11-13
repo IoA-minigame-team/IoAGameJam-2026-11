@@ -38,6 +38,11 @@ public sealed class LifeHud : MonoBehaviour
 
     readonly List<Slot> slots = new List<Slot>();
     int remaining;
+    // 銘の増減が無いときの上限と、これまでに当たった回数。捨て身で上限が減ったとき、印を1つ減らすために覚えておく
+    int baseMax;
+    int taken;
+    bool defeated;
+    int lastOffset;
     float shakeTime = -1f;
     Vector2 rowHome;
 
@@ -45,9 +50,13 @@ public sealed class LifeHud : MonoBehaviour
     {
         if (row == null) row = (RectTransform)transform;
         rowHome = row.anchoredPosition;
-        int count = tuning != null ? tuning.LifeSlots : 3;
-        SetCount(count, count);
+        baseMax = tuning != null ? tuning.LifeSlots : 3;
+        lastOffset = Offset();
+        Refresh();
     }
+
+    // 捨て身などで被弾できる回数が変わった。PlayerHealth はこのとき PlayerDamaged を流さないので、銘の倍率を見て気づく
+    static int Offset() => GameContext.MeiStats.MaxDamageOffset;
 
     void OnEnable() => GameEvents.PlayerDamaged += OnPlayerDamaged;
 
@@ -56,11 +65,25 @@ public sealed class LifeHud : MonoBehaviour
     void OnPlayerDamaged(int left)
     {
         left = Mathf.Max(0, left);
-        // 上限が分からないので、今ある印より多く届いたら印を足す(最初の通知や、銘で上限が増えたとき)
-        int total = Mathf.Max(slots.Count, left);
+        int offset = Offset();
+        // 上限は PlayerDamaged からしか分からないので、今の上限より多く届いたら上限を広げる(最初の通知など)
+        if (left > baseMax + offset) baseMax = left - offset;
+        taken = baseMax + offset - left;
+        defeated = left <= 0;
         bool lost = left < remaining;
-        SetCount(total, left);
+        Refresh();
         if (lost) shakeTime = 0f;
+    }
+
+    /// <summary>
+    /// 上限(銘の増減込み)の数だけ印を並べ、残りを埋める。
+    /// 上限が減っても最低1回は残すのは、髙橋さんの PlayerHealth と同じ決まりに合わせている(銘を選んだだけで負けにしない)
+    /// </summary>
+    void Refresh()
+    {
+        int max = Mathf.Max(1, baseMax + Offset());
+        int left = defeated ? 0 : Mathf.Clamp(max - taken, 1, max);
+        SetCount(max, left);
     }
 
     /// <summary>印を total 個に合わせ、先頭から left 個を埋める。減った印は割れて消える</summary>
@@ -101,6 +124,12 @@ public sealed class LifeHud : MonoBehaviour
 
     void Update()
     {
+        int offset = Offset();
+        if (offset != lastOffset)
+        {
+            lastOffset = offset;
+            Refresh();
+        }
         if (tuning == null) return;
         float dt = Time.unscaledDeltaTime;
         bool last = remaining == 1;
