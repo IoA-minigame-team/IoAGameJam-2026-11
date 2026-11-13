@@ -487,6 +487,7 @@ MonoBehaviour:
   - {fileID: 664874798}
   - {fileID: 662597053}
   lift: {fileID: 1085450922}
+  tuning: {fileID: 0}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -2113,6 +2114,7 @@ MonoBehaviour:
   - {fileID: 151485083}
   - {fileID: 2009458328}
   lift: {fileID: 328914224}
+  tuning: {fileID: 0}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -2366,6 +2368,7 @@ MonoBehaviour:
   detailText: {fileID: 0}
   pips: []
   lift: {fileID: 1973436368}
+  tuning: {fileID: 0}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
@@ -6938,6 +6941,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1403954443}
   - component: {fileID: 1403954442}
+  - component: {fileID: 1403954446}
+  - component: {fileID: 1403954445}
+  - component: {fileID: 1403954444}
   m_Layer: 0
   m_Name: C_Mei
   m_TagString: Untagged
@@ -6976,6 +6982,57 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1403954444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1403954441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1490715437c09db48a7e76cfc88eb36b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InryokuEffect
+  tuning: {fileID: 11400000, guid: eecd407cdbd39b0459735379ea805060, type: 2}
+  enemyTuning: {fileID: 11400000, guid: 6732d91dfba979847b21a8b5c2dff170, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 256
+  ringMaterial: {fileID: 2100000, guid: bba74c886ecf16e42a039e70c6f5b6a7, type: 2}
+--- !u!114 &1403954445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1403954441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d84769993ec62794cbae4aa31b9abda8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZankoEffect
+  tuning: {fileID: 11400000, guid: eecd407cdbd39b0459735379ea805060, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 256
+--- !u!114 &1403954446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1403954441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa86f1ed9b458c04c8cd4d36d2f0901f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShinEffect
+  tuning: {fileID: 11400000, guid: eecd407cdbd39b0459735379ea805060, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 256
+  ringMaterial: {fileID: 2100000, guid: bba74c886ecf16e42a039e70c6f5b6a7, type: 2}
 --- !u!1 &1447763709
 GameObject:
   m_ObjectHideFlags: 0
@@ -9388,6 +9445,7 @@ MonoBehaviour:
   - {fileID: 1351689112}
   - {fileID: 232817104}
   lift: {fileID: 633761412}
+  tuning: {fileID: 0}
   frameNormal: {r: 1, g: 1, b: 1, a: 0.14}
   frameSelected: {r: 0.91, g: 0.71, b: 0.29, a: 1}
   nameNormal: {r: 0.93, g: 0.92, b: 0.9, a: 1}
