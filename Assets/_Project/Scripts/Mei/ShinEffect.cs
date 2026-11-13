@@ -15,10 +15,21 @@ public sealed class ShinEffect : MonoBehaviour
     const int MAX_REMEMBERED_SLASHES = 8;
     // 敵が真上にいて向きが決められないときに使う最小の距離(m)
     const float MIN_OFFSET = 0.01f;
+    // 震の輪の太さ(m)。外の太い輪と、少し遅れて追う細い輪の2本で衝撃の波に見せる
+    const float OUTER_RING_WIDTH = 0.25f;
+    const float INNER_RING_WIDTH = 0.08f;
+    // 細い輪は太い輪の何割の大きさまで広がるか
+    const float INNER_RING_RATIO = 0.7f;
+    // 細い輪は太い輪より少し長く残して、波が2回来たように見せる
+    const float INNER_RING_DURATION_RATIO = 1.3f;
+    // 輪が広がり始める大きさ(m)。0 からだと最初の数フレームが点になって見えない
+    const float RING_START_RADIUS = 0.2f;
 
     [SerializeField] MeiTuning tuning;
     [Tooltip("押し出す敵のレイヤー。髙橋さんの斬り抜けと同じ Enemy レイヤーにする")]
     [SerializeField] LayerMask enemyMask;
+    [Tooltip("震の輪を描くマテリアル。FeedbackTuning の ringMaterial と同じものを入れる。空なら輪を出さない")]
+    [SerializeField] Material ringMaterial;
 
     readonly Collider[] colliderBuffer = new Collider[MAX_COLLIDERS];
     readonly HashSet<ILaunchable> pushed = new HashSet<ILaunchable>();
@@ -67,7 +78,13 @@ public sealed class ShinEffect : MonoBehaviour
     {
         Feedback.PlaySe(SeId.Shin, center);
         Feedback.Shake(tuning.ShinShakeStrength, tuning.ShinShakeDuration);
-        Feedback.SpawnVfx(VfxId.LightRing, center, Quaternion.identity);
+        // 刀を刺したときの光の輪(VfxId.LightRing)と同じだと見分けられないので、震だけの二重の輪を出す
+        if (ringMaterial != null)
+        {
+            Color color = tuning.ShinRingColor;
+            MeiPulseRing.SpawnRing(ringMaterial, center, RING_START_RADIUS, tuning.ShinRadius, OUTER_RING_WIDTH, tuning.ShinRingDuration, color);
+            MeiPulseRing.SpawnRing(ringMaterial, center, RING_START_RADIUS, tuning.ShinRadius * INNER_RING_RATIO, INNER_RING_WIDTH, tuning.ShinRingDuration * INNER_RING_DURATION_RATIO, color);
+        }
 
         float radius = tuning.ShinRadius;
         int count = Physics.OverlapSphereNonAlloc(center, radius, colliderBuffer, enemyMask, QueryTriggerInteraction.Collide);
@@ -96,7 +113,11 @@ public sealed class ShinEffect : MonoBehaviour
                 * Mathf.Lerp(1f, tuning.ShinEdgePowerRatio, edge)
                 * enemy.Weight
                 * enemy.GlowMultiplier;
-            enemy.Launch(direction * power, slashId);
+            Vector3 velocity = direction * power;
+            enemy.Launch(velocity, slashId);
+            // 当たったことも流す。飛ぶ敵に黒い雷の軌跡(FeedbackService)が付き、玉突き(TamatsukiResolver)も起きる。
+            // 流さないと、震で飛んだ敵は軌跡が無く、斬った敵と見分けにくいため
+            GameEvents.RaiseEnemyHit(new EnemyHitInfo(slashId, enemy, velocity, 1f));
         }
         pushed.Clear();
     }

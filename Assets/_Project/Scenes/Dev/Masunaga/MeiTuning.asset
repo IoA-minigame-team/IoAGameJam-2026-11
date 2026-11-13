@@ -50,21 +50,21 @@ MonoBehaviour:
     stat: 5
     perStage: 0.25
     weight: 1
-    enabled: 0
+    enabled: 1
   - id: 6
     displayName: "\u8FC5\u5203"
     description: "\u65AC\u308A\u629C\u3051\u308B\u901F\u3055\u304C\u4E0A\u304C\u308B"
     stat: 4
     perStage: 0.2
     weight: 1
-    enabled: 0
+    enabled: 1
   - id: 7
     displayName: "\u56EE"
     description: "\u706F\u55B0\u3089\u3044\u306E\u5F15\u304D\u5BC4\u305B\u7BC4\u56F2\u304C\u5E83\u304C\u308B"
     stat: 6
     perStage: 0.2
     weight: 1
-    enabled: 0
+    enabled: 1
   caps:
   - stat: 0
     max: 2
@@ -102,6 +102,21 @@ MonoBehaviour:
   shinEdgePowerRatio: 0.5
   shinShakeStrength: 0.6
   shinShakeDuration: 0.25
+  shinRingDuration: 0.35
+  shinRingColor: {r: 1, g: 0.95, b: 0.8, a: 1}
+  zankoDuration: 1.5
+  zankoRadius: 0.5
+  zankoPower: 7
+  zankoCheckInterval: 0.05
+  zankoBoltWidth: 0.08
+  zankoBoltJitter: 0.25
+  zankoBoltHeight: 0.3
+  inryokuRadius: 5
+  inryokuStopDistance: 1.2
+  inryokuMaxPullDistance: 3
+  inryokuRingDuration: 0.4
+  inryokuStreakDuration: 0.3
+  inryokuColor: {r: 0.75, g: 0.85, b: 1, a: 1}
   testTargetFriction: 3
   testTargetStopSpeed: 0.05
   openDelay: 0.6

@@ -120,7 +120,7 @@ public sealed class MeiTuning : ScriptableObject
     [Header("大銘")]
     [Tooltip("ウェーブをクリアしたときに大銘の候補を出すか")]
     [SerializeField] bool offerMajorMei = true;
-    [Tooltip("必達は「返し」(髙橋さん)と「震」(増永)。残光と引力は効果をまだ作っていないので、オフにして候補から外してある")]
+    [Tooltip("返しは PlayerController、震は ShinEffect、残光は ZankoEffect、引力は InryokuEffect が効果を出す")]
     [SerializeField]
     MajorMeiDef[] majorMeis =
     {
@@ -140,6 +140,41 @@ public sealed class MeiTuning : ScriptableObject
     [Tooltip("押し出した瞬間の画面の揺れの強さと秒数")]
     [SerializeField, Min(0f)] float shinShakeStrength = 0.6f;
     [SerializeField, Min(0f)] float shinShakeDuration = 0.25f;
+
+    [Tooltip("震の輪が半径いっぱいまで広がる秒数。短いほど衝撃らしく見える")]
+    [SerializeField, Min(0.01f)] float shinRingDuration = 0.35f;
+    [Tooltip("震の輪の色。刀を刺したときの金の輪と見分けられるよう、白寄りにしてある")]
+    [SerializeField] Color shinRingColor = new Color(1f, 0.95f, 0.8f, 1f);
+
+    [Header("大銘「残光」")]
+    [Tooltip("斬り抜けた線に雷が残る秒数")]
+    [SerializeField, Min(0.1f)] float zankoDuration = 1.5f;
+    [Tooltip("雷に触れたとみなす、線からの距離(m)")]
+    [SerializeField, Min(0.05f)] float zankoRadius = 0.5f;
+    [Tooltip("触れた敵を線と直角に弾き出す速さ(m/s)。剛力の倍率、敵の重さと光の蓄積も掛ける")]
+    [SerializeField, Min(0f)] float zankoPower = 7f;
+    [Tooltip("雷に触れた敵を調べる間隔(秒)。毎フレーム調べるほどの精度は要らないので間引く")]
+    [SerializeField, Min(0.01f)] float zankoCheckInterval = 0.05f;
+    [Tooltip("残っている雷の見た目の太さ(m)")]
+    [SerializeField, Min(0.01f)] float zankoBoltWidth = 0.08f;
+    [Tooltip("雷のギザギザの強さ(m)")]
+    [SerializeField, Min(0f)] float zankoBoltJitter = 0.25f;
+    [Tooltip("雷を地面から浮かせる高さ(m)。地面に埋もれて見えなくならないようにする")]
+    [SerializeField, Min(0f)] float zankoBoltHeight = 0.3f;
+
+    [Header("大銘「引力」")]
+    [Tooltip("刀を刺した所から、この半径(m)の中の敵を引き寄せる")]
+    [SerializeField, Min(0.1f)] float inryokuRadius = 5f;
+    [Tooltip("刀からこの距離(m)の所で止める。刀に重ねると斬り抜けの線から外れるので、少し手前にする")]
+    [SerializeField, Min(0f)] float inryokuStopDistance = 1.2f;
+    [Tooltip("1体を引き寄せる最大の距離(m)。引き寄せ中の敵は斬れないので、長くしすぎない")]
+    [SerializeField, Min(0f)] float inryokuMaxPullDistance = 3f;
+    [Tooltip("引力の輪が刀まで縮む秒数")]
+    [SerializeField, Min(0.01f)] float inryokuRingDuration = 0.4f;
+    [Tooltip("引き寄せる敵から刀へ走る光の線が見えている秒数")]
+    [SerializeField, Min(0.01f)] float inryokuStreakDuration = 0.3f;
+    [Tooltip("引力の輪と光の線の色。吸いこまれる感じを出すため、少し青白くしてある")]
+    [SerializeField] Color inryokuColor = new Color(0.75f, 0.85f, 1f, 1f);
 
     [Header("テスト用の敵(Dev シーンで震を試すときだけ使う)")]
     [Tooltip("試しの敵が押し出されたあと、1秒あたりに減る速さの割合。大きいほど早く止まる")]
@@ -163,6 +198,21 @@ public sealed class MeiTuning : ScriptableObject
     public float ShinEdgePowerRatio => shinEdgePowerRatio;
     public float ShinShakeStrength => shinShakeStrength;
     public float ShinShakeDuration => shinShakeDuration;
+    public float ShinRingDuration => shinRingDuration;
+    public Color ShinRingColor => shinRingColor;
+    public float ZankoDuration => zankoDuration;
+    public float ZankoRadius => zankoRadius;
+    public float ZankoPower => zankoPower;
+    public float ZankoCheckInterval => zankoCheckInterval;
+    public float ZankoBoltWidth => zankoBoltWidth;
+    public float ZankoBoltJitter => zankoBoltJitter;
+    public float ZankoBoltHeight => zankoBoltHeight;
+    public float InryokuRadius => inryokuRadius;
+    public float InryokuStopDistance => inryokuStopDistance;
+    public float InryokuMaxPullDistance => inryokuMaxPullDistance;
+    public float InryokuRingDuration => inryokuRingDuration;
+    public float InryokuStreakDuration => inryokuStreakDuration;
+    public Color InryokuColor => inryokuColor;
     public float TestTargetFriction => testTargetFriction;
     public float TestTargetStopSpeed => testTargetStopSpeed;
 
