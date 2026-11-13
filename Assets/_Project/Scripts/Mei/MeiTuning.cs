@@ -98,14 +98,14 @@ public sealed class MeiTuning : ScriptableObject
     [SerializeField]
     MinorMeiDef[] minorMeis =
     {
-        // 必達の4種。三段まで重ねると、大断 1.30倍、剛力 1.60倍、疾風 1.30倍、長夜 1.45倍になる
+        // 7種とも、効果を読む側(髙橋さん、三條さん)ができているので候補に出す。三段まで重ねると、大断 1.30倍、剛力 1.60倍、疾風 1.30倍、長夜 1.45倍になる
         new MinorMeiDef(MinorMeiId.Daidan, "大断", "線の幅が広がる", MeiStat.LineWidth, 0.1f, true),
         new MinorMeiDef(MinorMeiId.Goriki, "剛力", "吹き飛ばす力が上がる", MeiStat.LaunchPower, 0.2f, true),
         new MinorMeiDef(MinorMeiId.Shippu, "疾風", "手ぶらで走る速さが上がる", MeiStat.FreeHandSpeed, 0.1f, true),
         new MinorMeiDef(MinorMeiId.Choya, "長夜", "自動で斬り戻すまでの時間が延びる", MeiStat.AutoReturnTime, 0.15f, true),
-        new MinorMeiDef(MinorMeiId.Eiko, "鋭光", "光の蓄積が増える", MeiStat.GlowGain, 0.25f, false),
-        new MinorMeiDef(MinorMeiId.Jinba, "迅刃", "斬り抜ける速さが上がる", MeiStat.SlashSpeed, 0.2f, false),
-        new MinorMeiDef(MinorMeiId.Otori, "囮", "灯喰らいの引き寄せ範囲が広がる", MeiStat.LureRadius, 0.2f, false),
+        new MinorMeiDef(MinorMeiId.Eiko, "鋭光", "光の蓄積が増える", MeiStat.GlowGain, 0.25f, true),
+        new MinorMeiDef(MinorMeiId.Jinba, "迅刃", "斬り抜ける速さが上がる", MeiStat.SlashSpeed, 0.2f, true),
+        new MinorMeiDef(MinorMeiId.Otori, "囮", "灯喰らいの引き寄せ範囲が広がる", MeiStat.LureRadius, 0.2f, true),
     };
 
     [Tooltip("能力ごとの全体の上限(倍率)。ここに無い能力の上限は defaultCap")]
@@ -126,8 +126,8 @@ public sealed class MeiTuning : ScriptableObject
     {
         new MajorMeiDef(MajorMeiId.Kaeshi, "返し", "斬り抜けた直後、同じ線を逆向きにもう一度斬り抜ける", "ふたつの光が逆向きに回る", true),
         new MajorMeiDef(MajorMeiId.Shin, "震", "斬り抜けて止まった瞬間、周りの敵を外へ押し出す", "脈打つ波紋が広がる", true),
-        new MajorMeiDef(MajorMeiId.Zanko, "残光", "斬り抜けた線に雷がしばらく残り、触れた敵を弾き出す", "小さな黒い稲妻が走る", false),
-        new MajorMeiDef(MajorMeiId.Inryoku, "引力", "刀を刺した瞬間、周りの敵を刀へ引き寄せる", "光の粒が刀へ吸いこまれる", false),
+        new MajorMeiDef(MajorMeiId.Zanko, "残光", "斬り抜けた線に雷がしばらく残り、触れた敵を弾き出す", "小さな黒い稲妻が走る", true),
+        new MajorMeiDef(MajorMeiId.Inryoku, "引力", "刀を刺した瞬間、周りの敵を刀へ引き寄せる", "光の粒が刀へ吸いこまれる", true),
     };
 
     [Header("大銘「震」")]
