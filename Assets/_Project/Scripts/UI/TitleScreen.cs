@@ -21,6 +21,8 @@ public sealed class TitleScreen : MonoBehaviour
     [Tooltip("「始める」で移るシーンの名前。Build Settings に入っている必要がある")]
     [SerializeField] string gameSceneName = "InGame";
     [SerializeField] Button startButton;
+    [Tooltip("果てなく(エンドレス)で始めるボタン。空なら果てなくは選べない")]
+    [SerializeField] Button endlessButton;
     [SerializeField] TMP_Text bestText;
     [Header("主人公が走ってきて、画面を斬る")]
     [Tooltip("主人公の根(位置を動かす)。シーンに置いた位置が、走り終わって止まる位置になる")]
@@ -144,7 +146,8 @@ public sealed class TitleScreen : MonoBehaviour
             Debug.Log($"[TitleScreen] 主人公を {heroStart} から {heroEnd} へ {runDuration} 秒で走らせる");
         }
 
-        startButton.onClick.AddListener(OnStart);
+        startButton.onClick.AddListener(() => OnStart(GameMode.Clear));
+        if (endlessButton != null) endlessButton.onClick.AddListener(() => OnStart(GameMode.Endless));
         if (howToButton != null) howToButton.onClick.AddListener(() => ShowHowTo(true));
         if (howToCloseButton != null) howToCloseButton.onClick.AddListener(() => ShowHowTo(false));
         if (howToPanel != null) howToPanel.SetActive(false);
@@ -152,6 +155,9 @@ public sealed class TitleScreen : MonoBehaviour
         bestText.text = RecordStore.HasRecord
             ? $"自己ベスト　一振り最多 {RecordStore.BestMaxSwing}体（{tuning.TitleFor(RecordStore.BestMaxSwing)}）　得点 {RecordStore.BestScore:N0}"
             : "まだ記録はありません。一振りで落とした最多の数が記録になります。";
+        // 果てなくの記録は得点で競うので、別の行に出す
+        if (endlessButton != null && RecordStore.HasEndlessRecord)
+            bestText.text += $"\n果てなく　得点 {RecordStore.BestEndlessScore:N0}（第{KanjiNumber.Of(RecordStore.BestEndlessWave)}波まで）";
 
         logoGroup.alpha = 0f;
         foreach (CanvasGroup g in revealInOrder) g.alpha = 0f;
@@ -276,10 +282,12 @@ public sealed class TitleScreen : MonoBehaviour
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(select);
     }
 
-    void OnStart()
+    void OnStart(GameMode mode)
     {
         if (leaving || !revealed || howToOpen) return;
         leaving = true;
+        // InGame の各担当が読む。結果画面の「もう一度」でも同じ遊び方が続く
+        GameContext.Mode = mode;
         Feedback.PlaySe(SeId.Slash, Vector3.zero);
         Feedback.PlaySe(SeId.Thunder, Vector3.zero);
         StartCoroutine(Leave());

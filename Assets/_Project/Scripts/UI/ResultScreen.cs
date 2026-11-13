@@ -36,11 +36,21 @@ public sealed class ResultScreen : MonoBehaviour
     [SerializeField] TMP_Text chainText;
     [SerializeField] TMP_Text fallsText;
     [SerializeField] TMP_Text majorText;
+    [Header("果てなく(エンドレス)のとき、得点を大きく出すために書き換える見出し。空でも動く")]
+    [Tooltip("大きな数字の上の見出し(「一振り最多」)")]
+    [SerializeField] TMP_Text bigLabelText;
+    [Tooltip("大きな数字の横の単位(「体」)")]
+    [SerializeField] TMP_Text bigUnitText;
+    [Tooltip("右の欄の「得点」の見出し。果てなくでは一振り最多を出す")]
+    [SerializeField] TMP_Text scoreLabelText;
     [SerializeField] Button retryButton;
     [SerializeField] Button titleButton;
 
     float time;
     bool thundered;
+    bool endless;
+    // 大きな数字で数え上げる値。5波では一振り最多、果てなくでは得点
+    int bigValue;
 
     void Start()
     {
@@ -62,6 +72,9 @@ public sealed class ResultScreen : MonoBehaviour
         fallsText.text = GameResult.Falls.ToString();
         majorText.text = MajorName(GameResult.Major);
         newBestBadge.SetActive(GameResult.IsNewBest);
+        bigValue = GameResult.MaxSwing;
+        endless = GameContext.Mode == GameMode.Endless;
+        if (endless) ShowEndless();
         maxSwingText.text = "0";
         if (titleSlash != null) titleSlash.localScale = new Vector3(0f, 1f, 1f);
     }
@@ -70,14 +83,33 @@ public sealed class ResultScreen : MonoBehaviour
     {
         time += Time.unscaledDeltaTime;
         // 一振り最多を 0 から数え上げ、称号に線を走らせ、雷を鳴らす
-        int shown = Mathf.RoundToInt(Mathf.Lerp(0, GameResult.MaxSwing, Mathf.Clamp01(time / 0.6f)));
-        maxSwingText.text = shown.ToString();
+        int shown = Mathf.RoundToInt(Mathf.Lerp(0, bigValue, Mathf.Clamp01(time / 0.6f)));
+        maxSwingText.text = endless ? shown.ToString("N0") : shown.ToString();
         if (titleSlash != null) titleSlash.localScale = new Vector3(Mathf.Clamp01((time - 0.5f) / 0.3f), 1f, 1f);
         if (!thundered && time > 0.5f)
         {
             thundered = true;
             Feedback.PlaySe(SeId.Thunder, Vector3.zero);
         }
+    }
+
+    /// <summary>
+    /// 果てなくは得点で競うので、大きな数字を得点にし、一振り最多は右の欄へ移す。
+    /// 称号は一振り最多のまま出す(一振り最多は果てなくでも見せたい記録のため)
+    /// </summary>
+    void ShowEndless()
+    {
+        subText.text = $"果てなく　第{KanjiNumber.Of(Mathf.Max(1, GameResult.WaveReached))}波で倒れた";
+        bigValue = GameResult.Score;
+        if (bigLabelText != null) bigLabelText.text = "得点";
+        if (bigUnitText != null) bigUnitText.gameObject.SetActive(false);
+        if (scoreLabelText != null) scoreLabelText.text = "一振り最多";
+        scoreText.text = $"{GameResult.MaxSwing}体";
+        // 得点は桁が多く、一振り最多用の大きさでは右の欄に重なるので、枠に収まるまで縮める
+        maxSwingText.textWrappingMode = TextWrappingModes.NoWrap;
+        maxSwingText.enableAutoSizing = true;
+        maxSwingText.fontSizeMin = 60f;
+        maxSwingText.fontSizeMax = maxSwingText.fontSize;
     }
 
     // 大銘の名前。銘の調整値(MeiTuning)に頼らず出せるよう、ここに持つ(4つだけで、仕様書「銘」の名前と同じ)

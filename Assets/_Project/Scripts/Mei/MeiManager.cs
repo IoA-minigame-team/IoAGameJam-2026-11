@@ -66,8 +66,8 @@ public sealed class MeiManager : MonoBehaviour
     void OnWaveCleared(int wave)
     {
         if (!tuning.OfferMajorMei) return;
-        // 最後のウェーブの後はリザルトへ進むので、大銘は出さない
-        if (feedbackTuning != null && wave >= feedbackTuning.TotalWaves) return;
+        // 最後のウェーブの後はリザルトへ進むので、大銘は出さない。果てなくでは続くので出す
+        if (GameContext.Mode != GameMode.Endless && feedbackTuning != null && wave >= feedbackTuning.TotalWaves) return;
         Request(MeiChoiceKind.Major);
     }
 

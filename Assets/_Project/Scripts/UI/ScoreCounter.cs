@@ -110,7 +110,8 @@ public sealed class ScoreCounter : MonoBehaviour
 
     void OnWaveCleared(int wave)
     {
-        if (wave >= tuning.TotalWaves) Finish(true);
+        // 果てなくでは最後の波を退けても終わらない。倒れるまで続ける
+        if (GameContext.Mode != GameMode.Endless && wave >= tuning.TotalWaves) Finish(true);
     }
 
     void OnGameOver() => Finish(false);
@@ -122,7 +123,10 @@ public sealed class ScoreCounter : MonoBehaviour
         if (finished) return;
         finished = true;
 
-        bool isNewBest = RecordStore.SubmitIfBest(MaxSwing, Score);
+        // 果てなくは得点で競う別の記録に入れる。銘を重ねた一振り最多で、5波の記録が埋まらないようにするため
+        bool isNewBest = GameContext.Mode == GameMode.Endless
+            ? RecordStore.SubmitEndlessIfBest(Score, currentWave)
+            : RecordStore.SubmitIfBest(MaxSwing, Score);
         GameResult.Set(cleared, Score, MaxSwing, MaxChain, Falls, currentWave, currentMajor, isNewBest);
 
         if (loadResultScene) StartCoroutine(LoadResultAfterDelay());
