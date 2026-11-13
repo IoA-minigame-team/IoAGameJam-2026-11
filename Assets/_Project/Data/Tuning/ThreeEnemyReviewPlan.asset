@@ -16,20 +16,29 @@ MonoBehaviour:
   - label: Three simultaneous enemies
     batches:
     - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
-      count: 1
+      count: 10
       areas: 16
       delay: 0
       interval: 0.01
+      randomPrefabs:
+      - {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      - {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
+      - {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
     - prefab: {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
       count: 1
       areas: 4
       delay: 0
       interval: 0.01
+      randomPrefabs:
+      - {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      - {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
+      - {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
     - prefab: {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
       count: 1
       areas: 8
       delay: 0
       interval: 0.01
+      randomPrefabs: []
   initialDelay: 0.1
   interWaveDelay: 2
   maxSpawnsPerFrame: 3

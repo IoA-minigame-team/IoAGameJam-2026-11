@@ -431,6 +431,9 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 1
+  movementObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4
 --- !u!114 &5965590362871046726
 MonoBehaviour:
   m_ObjectHideFlags: 0

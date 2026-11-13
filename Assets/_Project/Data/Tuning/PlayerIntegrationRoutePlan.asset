@@ -20,6 +20,10 @@ MonoBehaviour:
       areas: -1
       delay: 3
       interval: 0.7
+      randomPrefabs:
+      - {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
+      - {fileID: 4161875243266247339, guid: 9853e392f6947ae4788810db32d5e302, type: 3}
+      - {fileID: 5953686082908907121, guid: 2ac1be619c2cd1544a2f5b0e8ebfce33, type: 3}
   - label: "\u65B0\u3057\u3044\u6CE2"
     batches:
     - prefab: {fileID: 243820175435427458, guid: de5d4e073df09014a944908fe17d7d54, type: 3}
@@ -27,6 +31,7 @@ MonoBehaviour:
       areas: 30
       delay: 0
       interval: 0.7
+      randomPrefabs: []
   initialDelay: 0.6
   interWaveDelay: 2
   maxSpawnsPerFrame: 2
