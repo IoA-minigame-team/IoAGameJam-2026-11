@@ -19,11 +19,11 @@ MonoBehaviour:
   titles:
   - minCount: 1
     title: "\u7D20\u632F\u308A"
-  - minCount: 5
+  - minCount: 3
     title: "\u4E00\u9583"
-  - minCount: 10
+  - minCount: 5
     title: "\u65AD\u3061"
-  - minCount: 20
+  - minCount: 10
     title: "\u4E00\u5200"
   totalWaves: 5
   waveHints:
@@ -182,8 +182,24 @@ MonoBehaviour:
   calloutDuration: 1.5
   bannerDuration: 1.9
   resultDelay: 1.4
+  invertAt: 10
+  invertBigAt: 20
+  invertHold: 0.06
+  invertFade: 0.22
+  invertGap: 0.05
+  invertStrength: 1
+  bestBannerTime: 2.2
+  bestStampDelay: 0.95
+  bestStampTime: 0.16
+  bestStampScale: 2.6
   meiCardLiftHeight: 10
   meiCardLiftSpeed: 80
+  lifeSlots: 3
+  lifeIconSize: 30
+  lifeIconSpacing: 18
+  lifeLoseTime: 0.45
+  lifeLastPulse: 2.2
+  lifeShake: 10
   titleSceneName: TitleScene
   gameSceneName: GameScene
   resultSceneName: ResultScene
