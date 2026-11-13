@@ -22,6 +22,8 @@ public sealed class ResultScreen : MonoBehaviour
     [SerializeField, Min(0)] int testMaxChain = 6;
     [SerializeField, Min(0)] int testFalls = 87;
     [SerializeField, Min(1)] int testWave = 5;
+    [Tooltip("直接再生したとき、自己ベスト更新の印を出すか(印の動きを確かめるため)")]
+    [SerializeField] bool testNewBest = true;
 
     [SerializeField] TMP_Text headText;
     [SerializeField] TMP_Text subText;
@@ -45,7 +47,7 @@ public sealed class ResultScreen : MonoBehaviour
         // ゲームを通らずにこのシーンを直接再生したときは結果が無いので、見た目を確かめられるよう仮の結果を入れる
         if (!GameResult.HasResult)
         {
-            GameResult.Set(testCleared, testScore, testMaxSwing, testMaxChain, testFalls, testWave, MajorMeiId.None, false);
+            GameResult.Set(testCleared, testScore, testMaxSwing, testMaxChain, testFalls, testWave, MajorMeiId.None, testNewBest);
         }
 
         retryButton.onClick.AddListener(() => SceneManager.LoadScene(gameSceneName));
