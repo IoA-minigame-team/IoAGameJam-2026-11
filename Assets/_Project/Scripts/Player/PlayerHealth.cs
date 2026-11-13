@@ -55,6 +55,9 @@ public sealed class PlayerHealth : MonoBehaviour
     void Start()
     {
         spawnPosition = transform.position;
+        // 始めの残り回数を一度流す。増永さんの被弾の残り回数の UI が、最初の数を知るため。
+        // 受けている三條さんの GameOverController は 0 のときだけ終わらせるので、ここで流しても影響しない。被弾の音は鳴らさない
+        GameEvents.RaisePlayerDamaged(Remaining);
     }
 
     void Update()
