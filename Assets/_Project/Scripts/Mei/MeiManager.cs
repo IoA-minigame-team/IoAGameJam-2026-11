@@ -99,22 +99,49 @@ public sealed class MeiManager : MonoBehaviour
 
     List<MeiCandidate> DrawMinor()
     {
-        List<MeiTuning.MinorMeiDef> pool = new List<MeiTuning.MinorMeiDef>();
+        // ふつうの小銘と代償つきの小銘を、同じ袋に入れて重みで引く
+        List<MeiCandidate> pool = new List<MeiCandidate>();
+        List<float> weights = new List<float>();
         foreach (MeiTuning.MinorMeiDef def in tuning.MinorMeis)
         {
-            if (def.Enabled && state.CanStack(def.Id)) pool.Add(def);
+            if (!def.Enabled || !state.CanStack(def.Id)) continue;
+            // 同梱のフォントに矢印が無いので「から」「へ」で書く
+            string detail = Change(def.Stat, def.Id);
+            pool.Add(new MeiCandidate(MeiChoiceKind.Minor, def.Id, MajorMeiId.None, false,
+                def.DisplayName, def.Description, detail, state.GetStage(def.Id), tuning.MaxStage));
+            weights.Add(def.Weight);
+        }
+        if (tuning.CostMeis != null)
+        {
+            foreach (MeiTuning.CostMeiDef def in tuning.CostMeis)
+            {
+                if (!def.Enabled || !state.CanStack(def.Id)) continue;
+                pool.Add(new MeiCandidate(MeiChoiceKind.Minor, def.Id, MajorMeiId.None, false,
+                    def.DisplayName, def.Description, CostDetail(def), 0, 1, true));
+                weights.Add(def.Weight);
+            }
         }
 
+        List<int> indices = new List<int>();
+        for (int i = 0; i < pool.Count; i++) indices.Add(i);
         List<MeiCandidate> result = new List<MeiCandidate>();
-        foreach (MeiTuning.MinorMeiDef def in WeightedPick(pool, d => d.Weight, tuning.CandidateCount))
-        {
-            int stage = state.GetStage(def.Id);
-            // 同梱のフォントに矢印が無いので「から」「へ」で書く
-            string detail = $"{StatLabel(def.Stat)} ×{state.GetMultiplier(def.Stat):0.00} から ×{state.GetMultiplierIfAdded(def.Id):0.00} へ";
-            result.Add(new MeiCandidate(MeiChoiceKind.Minor, def.Id, MajorMeiId.None, false,
-                def.DisplayName, def.Description, detail, stage, tuning.MaxStage));
-        }
+        foreach (int i in WeightedPick(indices, i => weights[i], tuning.CandidateCount)) result.Add(pool[i]);
         return result;
+    }
+
+    string Change(MeiStat stat, MinorMeiId id) =>
+        $"{StatLabel(stat)} ×{state.GetMultiplier(stat):0.00} から ×{state.GetMultiplierIfAdded(id, stat):0.00} へ";
+
+    /// <summary>
+    /// 代償つきの小銘の補足。上がるものと下がるものを2行で並べる。
+    /// カードの補足の欄は狭いので、「から」「へ」は使わず刻んだあとの倍率だけを出す
+    /// </summary>
+    string CostDetail(MeiTuning.CostMeiDef def)
+    {
+        string up = $"{StatLabel(def.BoostStat)} ×{state.GetMultiplierIfAdded(def.Id, def.BoostStat):0.00}";
+        if (def.DamageOffset != 0) return $"{up}\n被弾できる回数 {def.DamageOffset:+0;-0}";
+        if (def.CostAmount != 0f) return $"{up}\n{StatLabel(def.CostStat)} ×{state.GetMultiplierIfAdded(def.Id, def.CostStat):0.00}";
+        return up;
     }
 
     List<MeiCandidate> DrawMajor()
@@ -158,7 +185,7 @@ public sealed class MeiManager : MonoBehaviour
         if (logChanges)
         {
             Debug.Log($"[銘] {chosen.DisplayName} を刻んだ / 線の幅×{state.LineWidthMultiplier:0.00} 吹き飛ばす力×{state.LaunchPowerMultiplier:0.00} " +
-                $"手ぶらの速さ×{state.FreeHandSpeedMultiplier:0.00} 自動で斬り戻すまで×{state.AutoReturnTimeMultiplier:0.00} 大銘 {state.Major}");
+                $"手ぶらの速さ×{state.FreeHandSpeedMultiplier:0.00} 自動で斬り戻すまで×{state.AutoReturnTimeMultiplier:0.00} 被弾できる回数{state.MaxDamageOffset:+0;-0;±0} 大銘 {state.Major}");
         }
     }
 

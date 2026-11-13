@@ -41,6 +41,54 @@ public sealed class MeiTuning : ScriptableObject
         }
     }
 
+    /// <summary>
+    /// 代償つきの小銘(仕様:各1回まで)。上がる能力と、代わりに下がる能力(または被弾できる回数)を持つ。
+    /// ふつうの小銘とは別の配列にしてあるのは、もう作ってある MeiTuning.asset にも初期値のまま入るようにするため
+    /// (配列ごと足すと、アセットに無い欄はコードの初期値になる)
+    /// </summary>
+    [Serializable]
+    public sealed class CostMeiDef
+    {
+        [SerializeField] MinorMeiId id;
+        [SerializeField] string displayName;
+        [SerializeField] string description;
+        [Tooltip("上がる能力と、倍率へ足す量")]
+        [SerializeField] MeiStat boostStat;
+        [SerializeField] float boostAmount = 0.4f;
+        [Tooltip("代わりに下がる能力と、倍率へ足す量(マイナス)。0 なら能力は下がらない")]
+        [SerializeField] MeiStat costStat;
+        [SerializeField] float costAmount = 0f;
+        [Tooltip("被弾できる回数の増減(捨て身で -1)。髙橋さんの PlayerHealth が MeiStats.MaxDamageOffset として読む")]
+        [SerializeField] int damageOffset = 0;
+        [Tooltip("抽選の重み。ふつうの小銘(1)より少し出にくくしてある")]
+        [SerializeField, Min(0f)] float weight = 0.6f;
+        [SerializeField] bool enabled = true;
+
+        public MinorMeiId Id => id;
+        public string DisplayName => displayName;
+        public string Description => description;
+        public MeiStat BoostStat => boostStat;
+        public float BoostAmount => boostAmount;
+        public MeiStat CostStat => costStat;
+        public float CostAmount => costAmount;
+        public int DamageOffset => damageOffset;
+        public float Weight => weight;
+        public bool Enabled => enabled;
+
+        public CostMeiDef(MinorMeiId id, string displayName, string description, MeiStat boostStat, float boostAmount,
+            MeiStat costStat, float costAmount, int damageOffset)
+        {
+            this.id = id;
+            this.displayName = displayName;
+            this.description = description;
+            this.boostStat = boostStat;
+            this.boostAmount = boostAmount;
+            this.costStat = costStat;
+            this.costAmount = costAmount;
+            this.damageOffset = damageOffset;
+        }
+    }
+
     [Serializable]
     public sealed class MajorMeiDef
     {
@@ -106,6 +154,15 @@ public sealed class MeiTuning : ScriptableObject
         new MinorMeiDef(MinorMeiId.Eiko, "鋭光", "光の蓄積が増える", MeiStat.GlowGain, 0.25f, true),
         new MinorMeiDef(MinorMeiId.Jinba, "迅刃", "斬り抜ける速さが上がる", MeiStat.SlashSpeed, 0.2f, true),
         new MinorMeiDef(MinorMeiId.Otori, "囮", "灯喰らいの引き寄せ範囲が広がる", MeiStat.LureRadius, 0.2f, true),
+    };
+
+    [Tooltip("代償つきの小銘(できれば)。各1回まで刻める。下がる能力は、ふつうの小銘で上げた分と足し算になる")]
+    [SerializeField]
+    CostMeiDef[] costMeis =
+    {
+        new CostMeiDef(MinorMeiId.Juto, "重刀", "吹き飛ばす力が大きく上がり、手ぶらで走る速さが下がる", MeiStat.LaunchPower, 0.5f, MeiStat.FreeHandSpeed, -0.2f, 0),
+        new CostMeiDef(MinorMeiId.Hosomi, "細身", "吹き飛ばす力が上がり、線の幅が狭まる", MeiStat.LaunchPower, 0.3f, MeiStat.LineWidth, -0.2f, 0),
+        new CostMeiDef(MinorMeiId.Sutemi, "捨て身", "吹き飛ばす力が上がり、被弾できる回数が1減る", MeiStat.LaunchPower, 0.4f, MeiStat.LaunchPower, 0f, -1),
     };
 
     [Tooltip("能力ごとの全体の上限(倍率)。ここに無い能力の上限は defaultCap")]
@@ -190,6 +247,7 @@ public sealed class MeiTuning : ScriptableObject
     public int MaxStage => maxStage;
     public int CandidateCount => Mathf.Clamp(candidateCount, 1, MAX_CANDIDATES);
     public MinorMeiDef[] MinorMeis => minorMeis;
+    public CostMeiDef[] CostMeis => costMeis;
     public MajorMeiDef[] MajorMeis => majorMeis;
     public bool OfferMajorMei => offerMajorMei;
     public float OpenDelay => openDelay;
@@ -223,6 +281,16 @@ public sealed class MeiTuning : ScriptableObject
             if (cap.Stat == stat) return cap.Max;
         }
         return defaultCap;
+    }
+
+    public CostMeiDef FindCost(MinorMeiId id)
+    {
+        if (costMeis == null) return null;
+        foreach (CostMeiDef def in costMeis)
+        {
+            if (def.Id == id) return def;
+        }
+        return null;
     }
 
     public MinorMeiDef FindMinor(MinorMeiId id)

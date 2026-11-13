@@ -46,7 +46,7 @@ public sealed class MeiCardView : MonoBehaviour, ISelectHandler, IDeselectHandle
         window = owner;
         index = candidateIndex;
 
-        if (kindText != null) kindText.text = candidate.IsKeep ? "" : candidate.Kind == MeiChoiceKind.Minor ? "小銘" : "大銘";
+        if (kindText != null) kindText.text = candidate.IsKeep ? "" : candidate.Kind == MeiChoiceKind.Minor ? (candidate.IsCost ? "代償つき小銘" : "小銘") : "大銘";
         // 名前は縦書きに見せたいので、1文字ずつ改行する(TextMeshPro は縦書きに対応していないため)
         if (nameText != null) nameText.text = candidate.IsKeep ? $"今の大銘「{candidate.DisplayName}」を残す" : string.Join("\n", ToChars(candidate.DisplayName));
         if (descText != null) descText.text = candidate.IsKeep ? "" : candidate.Description;

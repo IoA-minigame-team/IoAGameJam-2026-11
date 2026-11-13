@@ -42,6 +42,15 @@ public sealed class MeiHud : MonoBehaviour
             // 同梱のフォントに■□が無いので、段数は漢数字で出す
             sb.Append(def.DisplayName).Append(KanjiNumber.Of(stage)).Append("段　");
         }
+        // 代償つきは1回までなので段数は出さず、色を変えて見分ける
+        if (tuning.CostMeis != null)
+        {
+            foreach (MeiTuning.CostMeiDef def in tuning.CostMeis)
+            {
+                if (state.GetStage(def.Id) <= 0) continue;
+                sb.Append("<color=#E07A5F>").Append(def.DisplayName).Append("</color>　");
+            }
+        }
         listText.text = sb.ToString();
     }
 }

@@ -25,10 +25,13 @@ public readonly struct MeiCandidate
     /// <summary>小銘の今の段数(大銘では 0)</summary>
     public readonly int CurrentStage;
     public readonly int MaxStage;
+    /// <summary>代償つきの小銘か(カードに「代償つき」と出すため)</summary>
+    public readonly bool IsCost;
 
     public MeiCandidate(MeiChoiceKind kind, MinorMeiId minor, MajorMeiId major, bool isKeep,
-        string displayName, string description, string detail, int currentStage, int maxStage)
+        string displayName, string description, string detail, int currentStage, int maxStage, bool isCost = false)
     {
+        IsCost = isCost;
         Kind = kind;
         Minor = minor;
         Major = major;

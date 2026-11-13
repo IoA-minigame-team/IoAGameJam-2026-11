@@ -100,6 +100,6 @@ public sealed class MeiTestDriver : MonoBehaviour
             "Y: 試しの敵を周りに置く  U: 斬り抜けが終わったことにする\n" +
             $"線の幅 ×{s.LineWidthMultiplier:0.00}  吹き飛ばす力 ×{s.LaunchPowerMultiplier:0.00}\n" +
             $"手ぶらの速さ ×{s.FreeHandSpeedMultiplier:0.00}  自動で斬り戻すまで ×{s.AutoReturnTimeMultiplier:0.00}\n" +
-            $"返し {(s.HasReturnSlash ? "あり" : "なし")}  時間 {(TimeController.IsPaused ? "止まっている" : "動いている")}");
+            $"被弾できる回数 {s.MaxDamageOffset:+0;-0;±0}  返し {(s.HasReturnSlash ? "あり" : "なし")}  時間 {(TimeController.IsPaused ? "止まっている" : "動いている")}");
     }
 }

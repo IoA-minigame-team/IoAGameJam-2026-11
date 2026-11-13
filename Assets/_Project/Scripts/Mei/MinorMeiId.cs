@@ -19,4 +19,10 @@ public enum MinorMeiId
     Jinba,
     /// <summary>囮：灯喰らいの引き寄せ範囲が広がる(できれば)</summary>
     Otori,
+    /// <summary>重刀(代償つき)：吹き飛ばす力が大きく上がり、手ぶらで走る速さが下がる</summary>
+    Juto,
+    /// <summary>細身(代償つき)：吹き飛ばす力が上がり、線の幅が狭まる</summary>
+    Hosomi,
+    /// <summary>捨て身(代償つき)：吹き飛ばす力が上がり、被弾できる回数が1減る</summary>
+    Sutemi,
 }
