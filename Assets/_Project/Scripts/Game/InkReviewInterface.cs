@@ -83,8 +83,8 @@ public sealed class InkReviewInterface : MonoBehaviour
     }
     void OnWaveStarted(int number)
     {
-        currentWave=number;totalThisWave=0;
-        foreach(var batch in session.Flow.Plan.Waves[number-1].Batches)totalThisWave+=batch.Count;
+        // 開始通知の時点では未出現数がその波の総数。果てなくで強化した数もそのまま反映される
+        currentWave=number;totalThisWave=session.Flow.PendingCount;
         bannerTitle.text="第"+Number(number)+"波";
         bannerSub.text=session.IsReview?"影　・　盾持ち　・　灯喰らい　　同時出現":"影を誘い、一振りで払え";
         bannerSeal.text="開　戦";bannerBlocksSpawning=true;bannerRemaining=bannerDuration;SetGroup(bannerGroup,true);UpdatePause();
