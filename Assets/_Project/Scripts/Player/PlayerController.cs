@@ -101,6 +101,12 @@ public sealed class PlayerController : MonoBehaviour
     public event System.Action<Vector3, Vector3, int> SlashBegan;
 
     /// <summary>
+    /// 鍔が鳴った瞬間(納刀の SE とヒットストップの直後)。当たった一振りの締めにだけ流れる。
+    /// 斬り抜け演出の締めの文字を、音と同時に出すために使う
+    /// </summary>
+    public event System.Action Sheathed;
+
+    /// <summary>
     /// 今の斬り抜けが線のどこまで進んだか(0〜1)。返しでは返しの斬り抜けの進み具合。斬り抜け中でなければ 0。
     /// 返しの間合いの最中は 0 のまま
     /// </summary>
@@ -532,6 +538,7 @@ public sealed class PlayerController : MonoBehaviour
         sheatheRemaining = -1f;
         Feedback.PlaySe(SeId.Sheathe, transform.position);
         TimeController.HitStop(tuning.SheatheHitStop);
+        Sheathed?.Invoke();
     }
 
     void ReturnSwordToHand()

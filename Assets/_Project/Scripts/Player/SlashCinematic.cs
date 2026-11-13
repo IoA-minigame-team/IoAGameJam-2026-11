@@ -35,6 +35,8 @@ public sealed class SlashCinematic : MonoBehaviour
     [SerializeField] CinemachineBrain brain;
     [Tooltip("駆け込みを追う肩越しカメラ。空なら最初から終点の寄りで撮る")]
     [SerializeField] CinemachineCamera runInCamera;
+    [Tooltip("鍔が鳴る瞬間に出す締めの文字。空なら出さない")]
+    [SerializeField] SlashFinishText finishText;
 
     // この GameObject のカメラ。終点の寄りを撮る
     CinemachineCamera closeCamera;
@@ -51,6 +53,8 @@ public sealed class SlashCinematic : MonoBehaviour
     Vector3 lineEnd;
     // 返しの斬り抜けを撮っているか
     bool shootingReturn;
+    // この演出で締めの文字を出したか。返しがあっても1回だけ出すため
+    bool finishShown;
     // 主人公の SlashBegan を購読しているか。自動で探す場合は OnEnable の時点で見つからないことがあるため
     bool isBoundToPlayer;
 
@@ -91,7 +95,11 @@ public sealed class SlashCinematic : MonoBehaviour
 
     void OnDisable()
     {
-        if (isBoundToPlayer) player.SlashBegan -= OnSlashBegan;
+        if (isBoundToPlayer)
+        {
+            player.SlashBegan -= OnSlashBegan;
+            player.Sheathed -= OnSheathed;
+        }
         isBoundToPlayer = false;
         GameEvents.GameOver -= OnGameOver;
         StopImmediately();
@@ -109,6 +117,7 @@ public sealed class SlashCinematic : MonoBehaviour
 
         playerHealth = player.GetComponent<PlayerHealth>();
         player.SlashBegan += OnSlashBegan;
+        player.Sheathed += OnSheathed;
         isBoundToPlayer = true;
     }
 
@@ -190,7 +199,18 @@ public sealed class SlashCinematic : MonoBehaviour
         lineStart = start;
         lineEnd = end;
         shootingReturn = false;
+        finishShown = false;
         StartPassShots(start, end);
+    }
+
+    // 硬直と納刀の遅れの長さによっては SheatheHold に入る前に鳴るので、フェーズを待たずにイベントで受ける。
+    // 見下ろしへ戻り始めた後の鍔鳴りは、演出の締めではないので出さない
+    void OnSheathed()
+    {
+        if (finishShown || finishText == null) return;
+        if (phase != Phase.RunIn && phase != Phase.Slashing && phase != Phase.SheatheHold) return;
+        finishShown = true;
+        finishText.Play();
     }
 
     bool ShouldStartReturnShots() => player.IsReturnSlashing && !shootingReturn;
@@ -256,6 +276,7 @@ public sealed class SlashCinematic : MonoBehaviour
     // ゲームオーバーで止まった主人公を演出のカメラで映し続けないよう、すぐ見下ろしへ戻し始める
     void OnGameOver()
     {
+        if (finishText != null) finishText.Hide();
         if (phase == Phase.Idle || phase == Phase.BlendBack) return;
         BeginBlendBack();
     }
@@ -263,6 +284,7 @@ public sealed class SlashCinematic : MonoBehaviour
     // 無効にされたときは Update が来ないので、その場で全部戻す
     void StopImmediately()
     {
+        if (finishText != null) finishText.Hide();
         if (phase == Phase.Idle) return;
 
         TimeController.ReleaseSlow(this);
