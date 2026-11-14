@@ -127,6 +127,8 @@ public sealed class ScoreCounter : MonoBehaviour
         bool isNewBest = GameContext.Mode == GameMode.Endless
             ? RecordStore.SubmitEndlessIfBest(Score, currentWave)
             : RecordStore.SubmitIfBest(MaxSwing, Score);
+        // 果てなくの得点は unityroom のランキングにも載せる
+        if (GameContext.Mode == GameMode.Endless) UnityroomRanking.SendEndless(Score);
         GameResult.Set(cleared, Score, MaxSwing, MaxChain, Falls, currentWave, currentMajor, isNewBest);
 
         if (loadResultScene) StartCoroutine(LoadResultAfterDelay());
