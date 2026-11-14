@@ -43,7 +43,17 @@ public sealed class SlashCinematic : MonoBehaviour
     PlayerHealth playerHealth;
     CinemachineBlendDefinition originalBlend;
     bool hasOriginalBlend;
-    Phase phase;
+    Phase currentPhase;
+    // 演出中かを GameContext にも写す。画面外の敵アイコン(増永さん)が、このクラスを参照せずに隠れられるようにするため
+    Phase phase
+    {
+        get => currentPhase;
+        set
+        {
+            currentPhase = value;
+            GameContext.IsSlashCinematicPlaying = value != Phase.Idle;
+        }
+    }
     float phaseTimer;
     // 一振りの間は同じ向きと横を使う。2台が線の同じ側から撮り、走る向きが画面で逆にならないようにするため
     Vector3 slashDirection;

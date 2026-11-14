@@ -13,4 +13,6 @@ public enum VfxId
     Hit,
     /// <summary>落ちた敵が光の粒になって消える</summary>
     FallSpark,
+    /// <summary>敵が湧く少し前に、出現する場所に出す予兆</summary>
+    SpawnOmen,
 }

@@ -44,6 +44,12 @@ public static class GameContext
     /// </summary>
     public static GameMode Mode { get; set; }
 
+    /// <summary>
+    /// 斬り抜け演出でカメラが主人公の肩越しに回っている間 true。書くのは髙橋。
+    /// 画面外の敵アイコンなど、通常のカメラを前提にした表示が演出中に隠れるために使う
+    /// </summary>
+    public static bool IsSlashCinematicPlaying { get; set; }
+
     // ドメインリロードを切った再生でも、前回の状態が残らないようにする
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay()
@@ -55,5 +61,6 @@ public static class GameContext
         AutoReturnRemaining = 0f;
         AutoReturnLimit = 0f;
         Mode = GameMode.Clear;
+        IsSlashCinematicPlaying = false;
     }
 }
