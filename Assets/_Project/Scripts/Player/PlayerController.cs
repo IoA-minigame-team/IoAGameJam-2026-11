@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 /// <summary>
@@ -597,7 +598,18 @@ public sealed class PlayerController : MonoBehaviour
 
     // ---- 入力 ----
 
-    bool WasPlantPressed() => plantAction != null && plantAction.action.WasPressedThisFrame();
+    bool WasPlantPressed()
+    {
+        if (plantAction == null || !plantAction.action.WasPressedThisFrame()) return false;
+        // 画面のボタン(ポーズの三本線など)をマウスで押したときは、刀を刺す入力として扱わない
+        return !IsMouseOverUi(plantAction.action);
+    }
+
+    static bool IsMouseOverUi(InputAction action)
+    {
+        if (!(action.activeControl?.device is Mouse)) return false;
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+    }
 
     bool IsPlantHeld() => plantAction != null && plantAction.action.IsPressed();
 
