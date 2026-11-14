@@ -46,9 +46,38 @@ public sealed class EnemySpawner : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 先に決めた出現位置。予兆を出してから湧かせるために、位置選びと生成を分ける。
+    /// 予約中の位置は他の予約や出現の候補から外す。
+    /// </summary>
+    public sealed class SpawnReservation
+    {
+        public GameObject Prefab { get; }
+        public Vector3 Position { get; }
+        public string PointName { get; }
+        internal readonly CapsuleCollider Body;
+        internal readonly Quaternion Rotation;
+        internal SpawnReservation(GameObject prefab, CapsuleCollider body, Vector3 position, Quaternion rotation, string pointName)
+        {
+            Prefab = prefab;Body = body;Position = position;Rotation = rotation;PointName = pointName;
+        }
+    }
+    readonly List<SpawnReservation> reservations = new List<SpawnReservation>();
+    public int ReservationCount => reservations.Count;
+
+    /// <summary>位置選びと生成を同じフレームで行う。予兆を出さない呼び出し側(確認コードなど)のための従来の口。</summary>
     public bool TrySpawn(GameObject prefab, EnemySpawnArea areas, out Enemy enemy)
     {
         enemy = null;
+        return TryReserve(prefab, areas, out var reservation) && TrySpawnReserved(reservation, out enemy);
+    }
+
+    /// <summary>
+    /// 出現位置だけを決めて押さえる。成功したら、予兆を出したあとで TrySpawnReserved を呼ぶ。
+    /// </summary>
+    public bool TryReserve(GameObject prefab, EnemySpawnArea areas, out SpawnReservation reservation)
+    {
+        reservation = null;
         if (plan == null || points == null || points.Length == 0) { LastFailure = "Wave plan or spawn points are missing.";return false; }
         if (prefab == null || prefab.GetComponent<Enemy>() == null) { LastFailure = "Spawn prefab needs Enemy (ILaunchable).";return false; }
         var prefabEnemy = prefab.GetComponent<Enemy>();
@@ -73,10 +102,9 @@ public sealed class EnemySpawner : MonoBehaviour
                 if (facing.sqrMagnitude < .000001f) facing = Vector3.forward;
                 Quaternion rotation = Quaternion.LookRotation(facing);
                 // 姿勢を決めてから検査する。中心がずれたColliderでも、実際に出す向きと判定を一致させる。
-                if (!HasClearance(position, rotation, prefab.transform, body)) continue;
-                var instance = Instantiate(prefab, position, rotation, spawnedRoot);
-                enemy = instance.GetComponent<Enemy>();
-                owned.Add(enemy);LastSpawned = enemy;TotalSpawned++;LastSpawnPoint = point.name;
+                if (!HasClearance(position, rotation, prefab.transform, body, null)) continue;
+                reservation = new SpawnReservation(prefab, body, position, rotation, point.name);
+                reservations.Add(reservation);
                 cursor = (index + 1) % points.Length;LastFailure = null;
                 return true;
             }
@@ -84,6 +112,38 @@ public sealed class EnemySpawner : MonoBehaviour
         LastFailure = foundArea ? "Spawn points blocked: check ground, player distance and enemy spacing." : "No enabled spawn point matches the requested area.";
         return false;
     }
+
+    /// <summary>
+    /// 予約した位置に敵を出す。予兆の間に主人公や他の敵が入り込んだら出さずに false を返す。
+    /// 成否にかかわらず予約は外れる(塞がれたら呼び出し側が予約し直す)。
+    /// </summary>
+    public bool TrySpawnReserved(SpawnReservation reservation, out Enemy enemy)
+    {
+        enemy = null;
+        if (reservation == null || !reservations.Remove(reservation)) { LastFailure = "Spawn reservation is missing or already used.";return false; }
+        var prefab = reservation.Prefab;var position = reservation.Position;
+        if (prefab == null) { LastFailure = "Reserved prefab is missing.";return false; }
+        // 向きは湧く瞬間の主人公へ向け直す。予兆の間に主人公が動いても背を向けて湧かない
+        Quaternion rotation = reservation.Rotation;
+        var player = GameContext.PlayerTransform;
+        if (player != null)
+        {
+            Vector3 facing = player.position - position;facing.y = 0;
+            if (facing.sqrMagnitude >= .000001f) rotation = Quaternion.LookRotation(facing);
+        }
+        if (!HasClearance(position, rotation, prefab.transform, reservation.Body, reservation))
+        {
+            LastFailure = "Reserved spawn position was blocked before the enemy appeared.";return false;
+        }
+        var instance = Instantiate(prefab, position, rotation, spawnedRoot);
+        enemy = instance.GetComponent<Enemy>();
+        owned.Add(enemy);LastSpawned = enemy;TotalSpawned++;LastSpawnPoint = reservation.PointName;
+        LastFailure = null;
+        return true;
+    }
+
+    /// <summary>出さずに予約を外す。</summary>
+    public void CancelReservation(SpawnReservation reservation) => reservations.Remove(reservation);
 
     bool TryGround(Vector3 position, out Vector3 grounded)
     {
@@ -98,7 +158,7 @@ public sealed class EnemySpawner : MonoBehaviour
         return TryGround(position + Vector3.right * margin, out _) && TryGround(position + Vector3.left * margin, out _)
             && TryGround(position + Vector3.forward * margin, out _) && TryGround(position + Vector3.back * margin, out _);
     }
-    bool HasClearance(Vector3 position, Quaternion rotation, Transform prefabRoot, CapsuleCollider body)
+    bool HasClearance(Vector3 position, Quaternion rotation, Transform prefabRoot, CapsuleCollider body, SpawnReservation self)
     {
         if (Physics.CheckSphere(position + Vector3.up, plan.GroundMargin, movementObstacleMask, QueryTriggerInteraction.Ignore)) return false;
         // 足元付近の余白だけでなく、頭や肩を含むカプセル全体が柵に重ならないことを確認する。
@@ -108,6 +168,9 @@ public sealed class EnemySpawner : MonoBehaviour
         if (player != null && FlatDistance(position, player.position) < plan.MinimumPlayerDistance) return false;
         foreach (var existing in owned)
             if (existing != null && FlatDistance(position, existing.Position) < plan.MinimumEnemyDistance) return false;
+        // 予兆を出している場所にも、まだいない敵がいるものとして扱う
+        foreach (var other in reservations)
+            if (other != self && FlatDistance(position, other.Position) < plan.MinimumEnemyDistance) return false;
         return true;
     }
     static float FlatDistance(Vector3 a, Vector3 b) { a.y = b.y = 0;return Vector3.Distance(a, b); }
@@ -116,7 +179,7 @@ public sealed class EnemySpawner : MonoBehaviour
     {
         // リセットは撃破ではない。スコアやWaveClearedのためのEnemyFellを捏造しない。
         foreach (var enemy in owned) if (enemy != null) Destroy(enemy.gameObject);
-        owned.Clear();cursor = TotalSpawned = ConfirmedFalls = 0;HasUnexpectedRemoval = false;
+        owned.Clear();reservations.Clear();cursor = TotalSpawned = ConfirmedFalls = 0;HasUnexpectedRemoval = false;
         LastSpawned = null;LastSpawnPoint = null;LastFailure = null;
     }
 }
