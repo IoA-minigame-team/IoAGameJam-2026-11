@@ -10,6 +10,8 @@ public sealed class MeiHud : MonoBehaviour
 {
     [SerializeField] MeiManager meiManager;
     [SerializeField] TMP_Text listText;
+    [Tooltip("大銘の席。あれば大銘はここに出し、一覧の文字からは外す。空の席も出して、大銘はひとつしか入らないと見せる")]
+    [SerializeField] MeiSlotView majorSlot;
 
     void OnEnable()
     {
@@ -30,11 +32,14 @@ public sealed class MeiHud : MonoBehaviour
         MeiTuning tuning = meiManager.Tuning;
         StringBuilder sb = new StringBuilder();
 
+        string majorName = null;
         if (state.Major != MajorMeiId.None)
         {
             MeiTuning.MajorMeiDef major = tuning.FindMajor(state.Major);
-            sb.Append("<color=#FFE2A0>").Append(major != null ? major.DisplayName : state.Major.ToString()).Append("</color> 大銘　");
+            majorName = major != null ? major.DisplayName : state.Major.ToString();
         }
+        if (majorSlot != null) majorSlot.Show(majorName);
+        else if (majorName != null) sb.Append("<color=#FFE2A0>").Append(majorName).Append("</color> 大銘　");
         foreach (MeiTuning.MinorMeiDef def in tuning.MinorMeis)
         {
             int stage = state.GetStage(def.Id);
