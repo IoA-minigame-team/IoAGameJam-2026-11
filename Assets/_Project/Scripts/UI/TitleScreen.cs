@@ -2,6 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -63,6 +64,12 @@ public sealed class TitleScreen : MonoBehaviour
     [Tooltip("遊び方の欄。開いている間だけ表示する")]
     [SerializeField] GameObject howToPanel;
     [SerializeField] Button howToCloseButton;
+    [Tooltip("遊び方のページ。順に1ページ目、2ページ目…。空なら1枚のまま(ページ送りなし)")]
+    [SerializeField] GameObject[] howToPages;
+    [SerializeField] Button howToPrevButton;
+    [SerializeField] Button howToNextButton;
+    [Tooltip("「一 / 二」のようなページ番号。空でも動く")]
+    [SerializeField] TMP_Text howToPageText;
 
     [Tooltip("始めるときに画面いっぱいに光る板")]
     [SerializeField] CanvasGroup flash;
@@ -90,6 +97,7 @@ public sealed class TitleScreen : MonoBehaviour
     // ロゴとボタンが出きったか、遊び方の欄が開いているか。ボタンを押せるのは、出きっていて欄が閉じているときだけ
     bool revealed;
     bool howToOpen;
+    int howToPage;
     bool sheathed;
 
     void Awake()
@@ -151,6 +159,8 @@ public sealed class TitleScreen : MonoBehaviour
         if (howToButton != null) howToButton.onClick.AddListener(() => ShowHowTo(true));
         if (howToCloseButton != null) howToCloseButton.onClick.AddListener(() => ShowHowTo(false));
         if (howToPanel != null) howToPanel.SetActive(false);
+        if (howToPrevButton != null) howToPrevButton.onClick.AddListener(() => TurnHowToPage(-1));
+        if (howToNextButton != null) howToNextButton.onClick.AddListener(() => TurnHowToPage(1));
 
         bestText.text = RecordStore.HasRecord
             ? $"自己ベスト　一振り最多 {RecordStore.BestMaxSwing}体（{tuning.TitleFor(RecordStore.BestMaxSwing)}）　得点 {RecordStore.BestScore:N0}"
@@ -172,6 +182,7 @@ public sealed class TitleScreen : MonoBehaviour
     {
         if (leaving) return;
         time += Mathf.Min(Time.unscaledDeltaTime, MAX_STEP);
+        if (howToOpen) ReadHowToPageInput();
 
         // 主人公が走ってくる → 止まって斬る → 斬り跡が画面を走って光る → ロゴが現れる → 説明が順に浮かぶ
         MoveHero();
@@ -275,11 +286,61 @@ public sealed class TitleScreen : MonoBehaviour
         // 後ろのロゴやボタンが透けて読みにくくならないよう、開いている間はタイトルの文字を隠す。
         // 隠すだけだと後ろの「始める」を選べてしまうので、押せないようにもする
         if (content != null) content.alpha = show ? 0f : 1f;
+        // 開くたびに1ページ目から見せる
+        if (show) SetHowToPage(0);
         UpdateInteractable();
         Feedback.PlaySe(SeId.UiMove, Vector3.zero);
         // 出きる前に閉じたときは、まだ何も選ばない(出きったときに「始める」を選ぶ)
         GameObject select = show ? howToCloseButton.gameObject : revealed ? howToButton.gameObject : null;
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(select);
+    }
+
+    /// <summary>
+    /// 開いている間は、左右キー・A/D・十字キー・左スティックでページを送る。
+    /// 選択中のボタン(「閉じる」)は動かさないので、決定ボタンはいつでも「閉じる」になる
+    /// </summary>
+    void ReadHowToPageInput()
+    {
+        if (howToPages == null || howToPages.Length <= 1) return;
+        int step = 0;
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null)
+        {
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame) step = -1;
+            if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame) step = 1;
+        }
+        Gamepad pad = Gamepad.current;
+        if (pad != null)
+        {
+            if (pad.dpad.left.wasPressedThisFrame || pad.leftStick.left.wasPressedThisFrame) step = -1;
+            if (pad.dpad.right.wasPressedThisFrame || pad.leftStick.right.wasPressedThisFrame) step = 1;
+        }
+        if (step != 0) TurnHowToPage(step);
+    }
+
+    void TurnHowToPage(int step)
+    {
+        if (!howToOpen || howToPages == null || howToPages.Length <= 1) return;
+        int next = Mathf.Clamp(howToPage + step, 0, howToPages.Length - 1);
+        if (next == howToPage) return;
+        SetHowToPage(next);
+        Feedback.PlaySe(SeId.UiMove, Vector3.zero);
+        // マウスで前へ・次へを押すとそちらが選ばれるので、決定ボタンが「閉じる」になるよう戻す
+        if (EventSystem.current != null && howToCloseButton != null) EventSystem.current.SetSelectedGameObject(howToCloseButton.gameObject);
+    }
+
+    void SetHowToPage(int page)
+    {
+        if (howToPages == null || howToPages.Length == 0) return;
+        howToPage = page;
+        for (int i = 0; i < howToPages.Length; i++)
+        {
+            if (howToPages[i] != null) howToPages[i].SetActive(i == page);
+        }
+        // 端では、その先へ送るボタンを押せなくする(消すと「閉じる」の位置が分かりにくくなるので残す)
+        if (howToPrevButton != null) howToPrevButton.interactable = page > 0;
+        if (howToNextButton != null) howToNextButton.interactable = page < howToPages.Length - 1;
+        if (howToPageText != null) howToPageText.text = $"{KanjiNumber.Of(page + 1)} / {KanjiNumber.Of(howToPages.Length)}";
     }
 
     void OnStart(GameMode mode)

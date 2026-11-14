@@ -71,6 +71,7 @@ public sealed class MeiCardView : MonoBehaviour, ISelectHandler, IDeselectHandle
         selected = true;
         Apply();
         Feedback.PlaySe(SeId.UiMove, Vector3.zero);
+        if (window != null) window.OnCardSelected(index);
     }
 
     public void OnDeselect(BaseEventData eventData)

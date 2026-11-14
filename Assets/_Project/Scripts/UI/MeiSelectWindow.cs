@@ -20,6 +20,8 @@ public sealed class MeiSelectWindow : MonoBehaviour
     [SerializeField] MeiCardView[] cards;
     [Tooltip("「今の大銘を残す」")]
     [SerializeField] MeiCardView keepCard;
+    [Tooltip("大銘の席。大銘の画面でだけ出し、選びかけのカードで今の大銘が入れ替わる様子を見せる。空でも動く")]
+    [SerializeField] MeiSlotView majorSlot;
 
     readonly List<MeiCandidate> current = new List<MeiCandidate>();
     Action<MeiCandidate> onChosen;
@@ -41,9 +43,11 @@ public sealed class MeiSelectWindow : MonoBehaviour
 
         eyebrowText.text = eyebrow;
         titleText.text = kind == MeiChoiceKind.Minor ? "銘を刻む" : "大銘をひとつ";
+        // 大銘は「ひとつだけ」を席の動きで見せるので、文は短くする
         subText.text = kind == MeiChoiceKind.Minor
             ? "小銘は重ねられる。ひとつにつき三段まで。"
-            : "大銘はひとつだけ。新しく刻むと、前の大銘は消える。";
+            : "刻めるのはひとつだけ。";
+        ShowMajorSlot(kind);
 
         // 候補をカードに、「残す」は専用のボタンに割り当てる
         int cardIndex = 0;
@@ -76,6 +80,31 @@ public sealed class MeiSelectWindow : MonoBehaviour
         // 最初のカードを選んだ状態で開く(ゲームパッドだけでもすぐ選べるように)
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(first);
         Feedback.PlaySe(SeId.MeiOpen, Vector3.zero);
+    }
+
+    /// <summary>カードが選ばれた(カーソルが乗った)ときにカードから呼ばれる。大銘なら席に入れ替わりを見せる</summary>
+    public void OnCardSelected(int index)
+    {
+        if (!IsOpen || majorSlot == null || index < 0 || index >= current.Count) return;
+        MeiCandidate candidate = current[index];
+        if (candidate.Kind != MeiChoiceKind.Major) return;
+        // 「残す」なら今の大銘のまま、新しい大銘なら今の大銘が斬られて入れ替わる
+        majorSlot.Preview(candidate.IsKeep ? null : candidate.DisplayName);
+    }
+
+    void ShowMajorSlot(MeiChoiceKind kind)
+    {
+        if (majorSlot == null) return;
+        bool major = kind == MeiChoiceKind.Major;
+        majorSlot.gameObject.SetActive(major);
+        if (!major) return;
+        // 今の大銘は「残す」の候補にだけ入っている(大銘がまだ無いときは「残す」が無く、空の席になる)
+        string currentName = null;
+        foreach (MeiCandidate candidate in current)
+        {
+            if (candidate.IsKeep) currentName = candidate.DisplayName;
+        }
+        majorSlot.Show(currentName);
     }
 
     /// <summary>カードから呼ばれる。index は Open で渡した候補の番号</summary>
