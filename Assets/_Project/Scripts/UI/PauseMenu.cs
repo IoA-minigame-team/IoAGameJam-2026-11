@@ -96,9 +96,10 @@ public sealed class PauseMenu : MonoBehaviour
         }
         if (openButton != null)
         {
-            // 開いている間は暗幕の上で目立たないよう隠し、開けない間(銘の選択中など)は押せなくする
-            if (openButton.gameObject.activeSelf == IsOpen) openButton.gameObject.SetActive(!IsOpen);
-            openButton.interactable = CanOpen();
+            // 開いている間と、開けない間(銘の選択中など)は隠す。銘の選択画面より手前に描かれるので、
+            // 押せないボタンが選択画面の上に重なって見えないようにする
+            bool show = !IsOpen && CanOpen();
+            if (openButton.gameObject.activeSelf != show) openButton.gameObject.SetActive(show);
         }
     }
 
