@@ -4,7 +4,7 @@
 
 見下ろし型の3D剣戟アクション。敵は斬って倒すのではなく、唯一の足場である浮島から落として倒す。
 
-▶ **[unityroom で遊ぶ](TODO)** <!-- TODO: unityroom の公開URLに差し替える -->
+▶ **[unityroom で遊ぶ](https://unityroom.com/games/hitofuri)** 
 
 | ジャンル | 操作 | プレイ時間 | 動作環境 |
 | --- | --- | --- | --- |
@@ -12,8 +12,8 @@
 
 IoA ゲームジャム作品(お題「ひとつだけ」)/ 3人チーム、開発期間1週間
 
-<!-- TODO: キービジュアル。群れをまとめて斬り抜ける瞬間の GIF がおすすめ -->
-<!-- ![プレイ画面](Documents/images/hitohuri.gif) -->
+<img width="1523" height="857" alt="hitofuri_gif" src="https://github.com/user-attachments/assets/17d08a82-4908-4700-9009-b9260c4958fe" />
+
 
 ## 遊び方
 
