@@ -142,6 +142,31 @@ public sealed class FeedbackTuning : ScriptableObject
     [Tooltip("島の中心。縁で揺れる向き(外向き)を決めるのに使う。仕様に無いので仮に原点")]
     [SerializeField] Vector3 islandCenter = Vector3.zero;
 
+    [Header("敵の目印(頭上の逆円錐)")]
+    // 赤は美術方針「色は刀と主人公だけ」の例外。試遊で敵が舞台に溶けると言われたため、刀の金とも敵の白い光とも混ざらない色にした
+    [Tooltip("逆円錐の色")]
+    [SerializeField] Color markerColor = new Color(0.9f, 0.08f, 0.08f, 1f);
+    [Tooltip("敵の足元から逆円錐の先端までの高さ(m)")]
+    [SerializeField, Min(0f)] float markerHeight = 3.1f;
+    [Tooltip("逆円錐の上面の半径(m)と、先端までの長さ(m)")]
+    [SerializeField, Min(0.01f)] float markerRadius = 0.18f;
+    [SerializeField, Min(0.01f)] float markerLength = 0.38f;
+    [Tooltip("円周の分割数。少ないほど角ばる")]
+    [SerializeField, Range(3, 32)] int markerSegments = 12;
+    [Tooltip("上下に揺れる幅(m)と、1往復の秒数。止まっていると背景の模様に見えるので少し動かす")]
+    [SerializeField, Min(0f)] float markerBobAmplitude = 0.07f;
+    [SerializeField, Min(0.1f)] float markerBobPeriod = 1.3f;
+
+    [Header("画面外の敵アイコン")]
+    [Tooltip("画面の縁からアイコンの中心までの余白(1920x1080 での px)")]
+    [SerializeField, Min(0f)] float offscreenMargin = 56f;
+    [Tooltip("アイコンの大きさ(px)")]
+    [SerializeField, Min(1f)] float offscreenIconSize = 64f;
+    [Tooltip("ビューポートの外側をこの割合だけ広げてから画面外とみなす。頭上の目印が見えているうちはアイコンを出さないため")]
+    [SerializeField, Range(0f, 0.2f)] float offscreenInset = 0.02f;
+    [Tooltip("向きを示す三角の色。逆円錐と揃える")]
+    [SerializeField] Color offscreenArrowColor = new Color(0.9f, 0.08f, 0.08f, 1f);
+
     [Header("刀の光")]
     [SerializeField, Min(0f)] float swordLightIntensity = 3f;
     [Tooltip("群がっていないときの光の揺らぎ")]
@@ -259,6 +284,17 @@ public sealed class FeedbackTuning : ScriptableObject
     public float TeeterAngle => teeterAngle;
     public float TeeterFrequency => teeterFrequency;
     public Vector3 IslandCenter => islandCenter;
+    public Color MarkerColor => markerColor;
+    public float MarkerHeight => markerHeight;
+    public float MarkerRadius => markerRadius;
+    public float MarkerLength => markerLength;
+    public int MarkerSegments => markerSegments;
+    public float MarkerBobAmplitude => markerBobAmplitude;
+    public float MarkerBobPeriod => markerBobPeriod;
+    public float OffscreenMargin => offscreenMargin;
+    public float OffscreenIconSize => offscreenIconSize;
+    public float OffscreenInset => offscreenInset;
+    public Color OffscreenArrowColor => offscreenArrowColor;
     public float SwordLightIntensity => swordLightIntensity;
     public float FlickerBase => flickerBase;
     public float FlickerPerSwarm => flickerPerSwarm;

@@ -20,6 +20,16 @@ public sealed class WaveController : MonoBehaviour
     GameObject[] chosenPrefabs;
     int[] remaining;
     float[] due, blockedSince, intervals;
+    // 予兆を出して位置を押さえた出現。添字は出現グループ、中身は湧かせる時刻の早い順。
+    // due は「まだ予約していない次の1体」の予定時刻を指す。
+    readonly struct PendingSpawn
+    {
+        public readonly EnemySpawner.SpawnReservation Reservation;
+        public readonly float SpawnAt;
+        public PendingSpawn(EnemySpawner.SpawnReservation reservation, float spawnAt) { Reservation = reservation;SpawnAt = spawnAt; }
+    }
+    System.Collections.Generic.List<PendingSpawn>[] reserved;
+    float[] reserveRetryAt;
     float elapsed, delay;
     bool startPending;
     int queuedStartWave = 1;
@@ -109,23 +119,51 @@ public sealed class WaveController : MonoBehaviour
         elapsed += dt;
         var batches = currentBatches;
         int budget = plan.MaxSpawnsPerFrame;
+        int reserveBudget = plan.MaxSpawnsPerFrame;
+        float lead = plan.SpawnOmenLead;
         for (int i = 0; i < batches.Length && budget > 0 && State == WaveState.Spawning; i++)
         {
-            while (remaining[i] > 0 && elapsed >= due[i] && budget > 0 && State == WaveState.Spawning)
+            var queue = reserved[i];
+            // 湧く lead 秒前に位置を決めて予兆を出す。lead が 0 なら、予約したその場で下の処理が湧かせる(従来どおり)
+            while (queue.Count < remaining[i] && elapsed >= due[i] - lead && elapsed >= reserveRetryAt[i] && reserveBudget > 0)
             {
                 if(chosenPrefabs[i]==null)chosenPrefabs[i]=batches[i].PickPrefab();
-                if (!spawner.TrySpawn(chosenPrefabs[i], batches[i].Areas, out _))
+                if (!spawner.TryReserve(chosenPrefabs[i], batches[i].Areas, out var reservation))
                 {
-                    // 塞がれた出現を「出した」と数えない。再試行し、長く失敗した場合は原因付きで止める。
-                    if (blockedSince[i] < 0) blockedSince[i] = elapsed;
-                    if (elapsed - blockedSince[i] >= plan.BlockedTimeout) { Fault(spawner.LastFailure);return; }
-                    due[i] = elapsed + plan.RetryInterval;break;
+                    if (Blocked(i)) return;
+                    reserveRetryAt[i] = elapsed + plan.RetryInterval;break;
                 }
-                chosenPrefabs[i]=null;remaining[i]--;PendingCount--;SpawnedThisWave++;budget--;blockedSince[i] = -1;
-                due[i] += intervals[i];
+                chosenPrefabs[i]=null;reserveBudget--;
+                // 遅れて予約できたときも予兆は lead 秒見せる。予兆なしで湧くと、予兆を覚えたプレイヤーを裏切るため
+                float spawnAt = Mathf.Max(due[i], elapsed + lead);
+                queue.Add(new PendingSpawn(reservation, spawnAt));
+                if (lead > 0) Feedback.SpawnVfx(VfxId.SpawnOmen, reservation.Position, Quaternion.identity);
+                due[i] = spawnAt + intervals[i];
+            }
+            while (queue.Count > 0 && elapsed >= queue[0].SpawnAt && budget > 0 && State == WaveState.Spawning)
+            {
+                var pending = queue[0];queue.RemoveAt(0);
+                if (!spawner.TrySpawnReserved(pending.Reservation, out _))
+                {
+                    // 予兆の間に主人公などが入り込んだ。この1体は予約し直し、列の最後に回す
+                    if (Blocked(i)) return;
+                    reserveRetryAt[i] = elapsed + plan.RetryInterval;
+                    due[i] = Mathf.Max(due[i], elapsed + plan.RetryInterval);break;
+                }
+                remaining[i]--;PendingCount--;SpawnedThisWave++;budget--;blockedSince[i] = -1;
             }
         }
         if (PendingCount == 0 && State == WaveState.Spawning) State = WaveState.WaitingForEnemies;
+    }
+
+    /// <summary>
+    /// 塞がれた出現を「出した」と数えない。再試行し、長く失敗した場合は原因付きで止める。止めたら true
+    /// </summary>
+    bool Blocked(int batch)
+    {
+        if (blockedSince[batch] < 0) blockedSince[batch] = elapsed;
+        if (elapsed - blockedSince[batch] < plan.BlockedTimeout) return false;
+        Fault(spawner.LastFailure);return true;
     }
 
     void LateUpdate()
@@ -146,10 +184,12 @@ public sealed class WaveController : MonoBehaviour
         CurrentWaveNumber = number;SpawnedThisWave = PendingCount = 0;elapsed = 0;
         var batches = currentBatches = ResolveWave(number, out int lap);
         chosenPrefabs = new GameObject[batches.Length];remaining = new int[batches.Length];due = new float[batches.Length];blockedSince = new float[batches.Length];intervals = new float[batches.Length];
+        reserved = new System.Collections.Generic.List<PendingSpawn>[batches.Length];reserveRetryAt = new float[batches.Length];
         for (int i = 0; i < batches.Length; i++)
         {
             remaining[i] = ScaledCount(batches[i], lap);PendingCount += remaining[i];due[i] = batches[i].Delay;blockedSince[i] = -1;
             intervals[i] = ScaledInterval(batches[i], lap);
+            reserved[i] = new System.Collections.Generic.List<PendingSpawn>();reserveRetryAt[i] = 0;
         }
         State = WaveState.Spawning;
         GameEvents.RaiseWaveStarted(number);

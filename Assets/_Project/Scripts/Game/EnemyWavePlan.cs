@@ -36,6 +36,8 @@ public sealed class EnemyWavePlan : ScriptableObject
     [SerializeField, Min(0f)] float initialDelay = .6f;
     [SerializeField, Min(0f)] float interWaveDelay = 2f;
     [SerializeField, Min(1)] int maxSpawnsPerFrame = 2;
+    [Tooltip("湧く何秒前に出現位置を決めて予兆を出すか。0で予兆なし(従来どおりその場で湧く)。試遊で湧く場所が分からないと言われたため")]
+    [SerializeField, Min(0f)] float spawnOmenLead = .8f;
     [Header("安全な出現位置")]
     [SerializeField, Min(0f)] float minimumEnemyDistance = 1.6f;
     [SerializeField, Min(0f)] float minimumPlayerDistance = 3f;
@@ -59,6 +61,7 @@ public sealed class EnemyWavePlan : ScriptableObject
     public float InitialDelay => Mathf.Max(0, initialDelay);
     public float InterWaveDelay => Mathf.Max(0, interWaveDelay);
     public int MaxSpawnsPerFrame => Mathf.Max(1, maxSpawnsPerFrame);
+    public float SpawnOmenLead => Mathf.Max(0, spawnOmenLead);
     public float MinimumEnemyDistance => Mathf.Max(0, minimumEnemyDistance);
     public float MinimumPlayerDistance => Mathf.Max(0, minimumPlayerDistance);
     public float GroundMargin => Mathf.Max(0, groundMargin);
